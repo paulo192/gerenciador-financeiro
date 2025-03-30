@@ -26,11 +26,10 @@
       border-radius: 4px; font-weight: bold;
     }
     nav button:hover { background: #696969; }
-    /* Botão para limpar dados */
     .btn-clear {
       padding: 10px 20px; font-size: 16px;
       background-color: #9B59B6; border: none;
-      border-radius: 4px; color: #FFF; cursor: pointer    cursor: pointer;
+      border-radius: 4px; color: #FFF; cursor: pointer;
       transition: opacity 0.2s;
     }
     .btn-clear:hover { opacity: 0.8; }
@@ -248,15 +247,20 @@
         <div id="transactionFilter">
           <h3>Filtro de Transações</h3>
           <div class="form-group">
-            <label for="transactionPeriod">Período</label>
-            <select id="transactionPeriod">
-              <option value="currentMonth">Mês Atual</option>
-              <option value="specificMonth">Mês Específico</option>
+            <label for="filterType">Tipo de Filtro</label>
+            <select id="filterType">
+              <option value="all">Todas</option>
+              <option value="income">Receitas</option>
+              <option value="expense">Despesas</option>
+              <option value="transfer">Transferências</option>
+              <option value="dateRange">Período Específico</option>
             </select>
           </div>
-          <div class="form-group" id="specificMonthGroup" style="display:none;">
-            <label for="specificMonth">Selecione o Mês</label>
-            <input type="month" id="specificMonth">
+          <div class="form-group" id="dateRangeGroup" style="display:none;">
+            <label for="startDate">Data Início</label>
+            <input type="date" id="startDate">
+            <label for="endDate">Data Fim</label>
+            <input type="date" id="endDate">
           </div>
           <div class="form-group">
             <button type="button" onclick="filterTransactions()">Filtrar</button>
@@ -474,18 +478,18 @@
       <section id="help">
         <h2>Ajuda - Guia do Programa</h2>
         <ul>
-          <li><strong>Contas Bancárias:</strong> Cadastre suas contas. O saldo atual é calculado a partir do saldo inicial mais as transações (receitas aumentam; despesas diminuem).</li>
-          <li><strong>Transações:</strong> Registre receitas, despesas e transferências. O saldo da conta escolhida é atualizado automaticamente.</li>
-          <li><strong>Contas Fixas:</strong> Adicione contas fixas e pague-as diretamente. Ao pagar, é gerada uma transação de despesa.</li>
-          <li><strong>Orçamentos:</strong> Defina limites para categorias e acompanhe o consumo mensal com barras de progresso.</li>
-          <li><strong>Metas:</strong> Crie metas financeiras e acompanhe seu progresso. Adicione valores manualmente.</li>
-          <li><strong>Relatórios:</strong> Gere relatórios mensais detalhados (receitas, gastos, saldo e resumo por tags).</li>
-          <li><strong>Declaração Anual:</strong> Gere um relatório anual para auxiliar na declaração do seu MEI. Você pode filtrar por banco.</li>
-          <li><strong>Estatísticas:</strong> Veja gráficos de receitas vs. gastos e evolução mensal no ano.</li>
-          <li><strong>Busca Avançada:</strong> Filtre transações por data e texto (descrição ou tags).</li>
-          <li><strong>Configurações:</strong> Altere tema, moeda, dia de fechamento e exporte/importe transações em CSV.</li>
-          <li><strong>Backup:</strong> Gere e restaure backups (em JSON) dos seus dados.</li>
-          <li><strong>Limpar Dados:</strong> Apaga todos os dados armazenados no Firestore e reinicia o sistema.</li>
+          <li><strong>Contas Bancárias:</strong> Cadastre suas contas. O saldo atual é calculado a partir do saldo inicial mais as transações.</li>
+          <li><strong>Transações:</strong> Registre receitas, despesas e transferências. O saldo das contas é atualizado automaticamente.</li>
+          <li><strong>Contas Fixas:</strong> Adicione contas fixas e pague-as diretamente, gerando uma transação de despesa.</li>
+          <li><strong>Orçamentos:</strong> Defina limites para categorias e acompanhe o consumo mensal.</li>
+          <li><strong>Metas:</strong> Crie metas financeiras e acompanhe seu progresso.</li>
+          <li><strong>Relatórios:</strong> Gere relatórios mensais detalhados.</li>
+          <li><strong>Declaração Anual:</strong> Gere um relatório anual para seu MEI.</li>
+          <li><strong>Estatísticas:</strong> Veja gráficos de receitas vs. gastos e evolução mensal.</li>
+          <li><strong>Busca Avançada:</strong> Filtre transações por data e texto.</li>
+          <li><strong>Configurações:</strong> Altere tema, moeda, dia de fechamento e exporte/importe transações.</li>
+          <li><strong>Backup:</strong> Gere e restaure backups dos seus dados.</li>
+          <li><strong>Limpar Dados:</strong> Apaga todos os dados armazenados.</li>
         </ul>
       </section>
 
@@ -508,11 +512,11 @@
 
     <!-- RODAPÉ -->
     <footer>
-      <p>Gerenciador Financeiro &copy; 2025</p>
+      <p>Gerenciador Financeiro © 2025</p>
     </footer>
 
     <script>
-      // Configuração do Firebase (use suas credenciais)
+      // Configuração do Firebase (SUBSTITUA PELAS SUAS CREDENCIAIS)
       const firebaseConfig = {
         apiKey: "AIzaSyBVCtmkrtBtVl3A4xcYxckHFFa_eHxiQ0w",
         authDomain: "gerenciador-financeiro-6d8c2.firebaseapp.com",
@@ -606,8 +610,7 @@
         try {
           await db.collection('users').doc(userId).set(data);
           localStorage.setItem("financialManagerSettings", JSON.stringify(settings));
-          updateDashboard();
-          updateDeclarationBankOptions();
+          updateAllSections();
         } catch (error) {
           console.error("Erro ao salvar dados:", error);
           alert("Erro ao salvar dados no Firestore.");
@@ -637,18 +640,33 @@
        ****************************/
       function updateAccountBalances() {
         data.accounts.forEach(account => {
-          let total = 0;
+          let balance = account.initialBalance || 0;
           data.transactions.forEach(t => {
-            if (t.bankId === account.id) {
-              if (t.type === "income" || (t.type === "transfer" && t.destinationAccount === account.id)) {
-                total += t.amount;
-              } else if (t.type === "expense" || (t.type === "transfer" && t.sourceAccount === account.id)) {
-                total -= t.amount;
+            if (t.type === "income" && t.bankId === account.id) {
+              balance += t.amount;
+            } else if (t.type === "expense" && t.bankId === account.id) {
+              balance -= t.amount;
+            } else if (t.type === "transfer") {
+              if (t.sourceAccount === account.id) {
+                balance -= t.amount;
+              } else if (t.destinationAccount === account.id) {
+                balance += t.amount;
               }
             }
           });
-          account.currentBalance = (account.initialBalance || 0) + total;
+          account.currentBalance = balance;
         });
+      }
+
+      function updateAllSections() {
+        updateAccountBalances();
+        renderAccounts();
+        renderTransactions();
+        renderRecurringBills();
+        renderBudgets();
+        renderGoals();
+        updateDashboard();
+        updateDeclarationBankOptions();
       }
 
       /****************************
@@ -661,7 +679,7 @@
           const tr = document.createElement("tr");
           tr.innerHTML = `<td>${account.id}</td>
                           <td>${account.name}</td>
-                          <td>${formatCurrency(account.currentBalance || account.initialBalance)}</td>
+                          <td>${formatCurrency(account.currentBalance)}</td>
                           <td>
                             <button class="action-btn" onclick="editAccount('${account.id}')">Editar</button>
                             <button class="action-btn" onclick="deleteAccount('${account.id}')">Deletar</button>
@@ -721,7 +739,8 @@
           if (acc) { acc.name = bankName; acc.initialBalance = initialBal; }
         }
         idField.value = ""; document.getElementById("bankName").value = ""; document.getElementById("initialBalance").value = "";
-        updateAccountBalances(); saveDataToFirestore(); renderAccounts(); alert("Conta salva com sucesso!");
+        saveDataToFirestore();
+        alert("Conta salva com sucesso!");
       }
       function editAccount(id) {
         let acc = data.accounts.find(a => a.id === id);
@@ -739,7 +758,7 @@
           return;
         }
         data.accounts = data.accounts.filter(a => a.id !== id);
-        saveDataToFirestore(); renderAccounts();
+        saveDataToFirestore();
       }
 
       /****************************
@@ -751,14 +770,22 @@
         let transactionsToRender = filteredTransactions || data.transactions;
         let sorted = transactionsToRender.slice().sort((a, b) => new Date(b.date) - new Date(a.date));
         sorted.forEach(t => {
-          let bank = data.accounts.find(a => a.id === t.bankId);
+          let accountInfo = "";
+          if (t.type === "transfer") {
+            let source = data.accounts.find(a => a.id === t.sourceAccount);
+            let dest = data.accounts.find(a => a.id === t.destinationAccount);
+            accountInfo = `${source ? source.name : "Conta não encontrada"} -> ${dest ? dest.name : "Conta não encontrada"}`;
+          } else {
+            let bank = data.accounts.find(a => a.id === t.bankId);
+            accountInfo = bank ? bank.name : "Conta não encontrada";
+          }
           const tr = document.createElement("tr");
           tr.innerHTML = `<td>${t.id}</td>
                           <td>${t.date}</td>
                           <td>${t.description}</td>
                           <td>${formatCurrency(t.type === "expense" ? -t.amount : t.amount)}</td>
                           <td>${t.type === "income" ? "Receita" : t.type === "expense" ? "Despesa" : "Transferência"}</td>
-                          <td>${bank ? bank.name : "Conta não encontrada"}</td>
+                          <td>${accountInfo}</td>
                           <td>${t.tags ? t.tags.join(", ") : ""}</td>
                           <td>
                             <button class="action-btn" onclick="editTransaction('${t.id}')">Editar</button>
@@ -773,9 +800,8 @@
         const descVal = document.getElementById("transactionDescription").value.trim();
         const amtVal = parseFloat(document.getElementById("transactionAmount").value);
         const typeVal = document.getElementById("transactionType").value;
-        const bankVal = document.getElementById("transactionBank").value;
         const tagsVal = document.getElementById("transactionTags").value.trim() ? document.getElementById("transactionTags").value.split(",").map(t => t.trim()) : [];
-        if (!dateVal || !descVal || isNaN(amtVal) || amtVal === 0) { alert("Preencha os campos obrigatórios."); return; }
+        if (!dateVal || !descVal || isNaN(amtVal) || amtVal <= 0) { alert("Preencha os campos obrigatórios corretamente."); return; }
         if (typeVal === "transfer") {
           const sourceAccount = document.getElementById("sourceAccount").value;
           const destinationAccount = document.getElementById("destinationAccount").value;
@@ -787,6 +813,7 @@
             if (t) { t.date = dateVal; t.description = descVal; t.amount = amtVal; t.type = "transfer"; t.sourceAccount = sourceAccount; t.destinationAccount = destinationAccount; t.tags = tagsVal; }
           }
         } else {
+          const bankVal = document.getElementById("transactionBank").value;
           if (!bankVal) { alert("Selecione uma conta bancária."); return; }
           if (!idField.value) {
             data.transactions.push({ id: generateId("trx"), date: dateVal, description: descVal, amount: amtVal, type: typeVal, bankId: bankVal, tags: tagsVal });
@@ -795,7 +822,9 @@
             if (t) { t.date = dateVal; t.description = descVal; t.amount = amtVal; t.type = typeVal; t.bankId = bankVal; t.tags = tagsVal; }
           }
         }
-        clearTransactionForm(); updateAccountBalances(); saveDataToFirestore(); renderTransactions(); updateDashboard(); alert("Transação salva com sucesso!");
+        clearTransactionForm();
+        saveDataToFirestore();
+        alert("Transação salva com sucesso!");
       }
       function clearTransactionForm() {
         document.getElementById("transactionId").value = "";
@@ -833,30 +862,20 @@
       function deleteTransaction(id) {
         if (!confirm("Confirma exclusão desta transação?")) return;
         data.transactions = data.transactions.filter(t => t.id !== id);
-        updateAccountBalances(); saveDataToFirestore(); renderTransactions(); updateDashboard();
+        saveDataToFirestore();
       }
       function filterTransactions() {
-        let period = document.getElementById("transactionPeriod").value;
+        let filterType = document.getElementById("filterType").value;
         let filteredTransactions = [];
-        if (period === "currentMonth") {
-          let now = new Date();
-          let start = new Date(now.getFullYear(), now.getMonth(), settings.closingDay);
-          let end = new Date(now.getFullYear(), now.getMonth() + 1, settings.closingDay - 1);
-          filteredTransactions = data.transactions.filter(t => {
-            let d = new Date(t.date);
-            return d >= start && d <= end;
-          });
-        } else if (period === "specificMonth") {
-          let specificMonth = document.getElementById("specificMonth").value;
-          if (!specificMonth) { alert("Selecione um mês específico."); return; }
-          let [year, month] = specificMonth.split("-");
-          year = parseInt(year); month = parseInt(month) - 1;
-          let start = new Date(year, month, settings.closingDay);
-          let end = new Date(year, month + 1, settings.closingDay - 1);
-          filteredTransactions = data.transactions.filter(t => {
-            let d = new Date(t.date);
-            return d >= start && d <= end;
-          });
+        if (filterType === "all") {
+          filteredTransactions = data.transactions;
+        } else if (filterType === "income" || filterType === "expense" || filterType === "transfer") {
+          filteredTransactions = data.transactions.filter(t => t.type === filterType);
+        } else if (filterType === "dateRange") {
+          let startDate = document.getElementById("startDate").value;
+          let endDate = document.getElementById("endDate").value;
+          if (!startDate || !endDate) { alert("Selecione as datas de início e fim."); return; }
+          filteredTransactions = data.transactions.filter(t => t.date >= startDate && t.date <= endDate);
         }
         renderTransactions(filteredTransactions);
       }
@@ -898,7 +917,8 @@
         }
         idField.value = ""; document.getElementById("recurringDescription").value = ""; document.getElementById("recurringAmount").value = "";
         document.getElementById("recurringDueDay").value = ""; document.getElementById("recurringBank").value = "";
-        saveDataToFirestore(); renderRecurringBills(); alert("Conta fixa salva com sucesso!");
+        saveDataToFirestore();
+        alert("Conta fixa salva com sucesso!");
       }
       function editRecurringBill(id) {
         let rb = data.recurringBills.find(r => r.id === id);
@@ -914,7 +934,7 @@
       function deleteRecurringBill(id) {
         if (!confirm("Confirma exclusão desta conta fixa?")) return;
         data.recurringBills = data.recurringBills.filter(r => r.id !== id);
-        saveDataToFirestore(); renderRecurringBills();
+        saveDataToFirestore();
       }
       function payRecurringBill(id) {
         let rb = data.recurringBills.find(r => r.id === id);
@@ -922,7 +942,8 @@
         if (!rb.bankId) { alert("Associe uma conta para efetuar o pagamento."); return; }
         if (!confirm(`Confirmar pagamento de ${formatCurrency(rb.amount)} para "${rb.description}"?`)) return;
         data.transactions.push({ id: generateId("trx"), date: new Date().toISOString().split("T")[0], description: "Pagamento de: " + rb.description, amount: rb.amount, type: "expense", bankId: rb.bankId, tags: ["recorrente"] });
-        updateAccountBalances(); saveDataToFirestore(); renderTransactions(); updateDashboard(); alert("Conta fixa paga com sucesso!");
+        saveDataToFirestore();
+        alert("Conta fixa paga com sucesso!");
       }
 
       /****************************
@@ -959,7 +980,8 @@
           if (b) { b.category = catVal; b.limit = limitVal; }
         }
         idField.value = ""; document.getElementById("budgetCategory").value = ""; document.getElementById("budgetLimit").value = "";
-        saveDataToFirestore(); renderBudgets(); alert("Orçamento salvo com sucesso!");
+        respondeDataToFirestore();
+        alert("Orçamento salvo com sucesso!");
       }
       function editBudget(id) {
         let b = data.budgets.find(b => b.id === id);
@@ -973,7 +995,7 @@
       function deleteBudget(id) {
         if (!confirm("Confirma exclusão deste orçamento?")) return;
         data.budgets = data.budgets.filter(b => b.id !== id);
-        saveDataToFirestore(); renderBudgets();
+        saveDataToFirestore();
       }
       function calculateSpentInCategory(category) {
         let total = 0;
@@ -1026,7 +1048,8 @@
           if (g) { g.name = nameVal; g.targetValue = targetVal; g.deadline = deadlineVal || null; }
         }
         idField.value = ""; document.getElementById("goalName").value = ""; document.getElementById("goalTarget").value = ""; document.getElementById("goalDeadline").value = "";
-        saveDataToFirestore(); renderGoals(); alert("Meta salva com sucesso!");
+        saveDataToFirestore();
+        alert("Meta salva com sucesso!");
       }
       function editGoal(id) {
         let g = data.goals.find(g => g.id === id);
@@ -1041,13 +1064,13 @@
       function deleteGoal(id) {
         if (!confirm("Confirma exclusão desta meta?")) return;
         data.goals = data.goals.filter(g => g.id !== id);
-        saveDataToFirestore(); renderGoals();
+        saveDataToFirestore();
       }
       function addValueToGoal(id) {
         let g = data.goals.find(g => g.id === id);
         if (g) {
           let val = parseFloat(prompt("Quanto deseja adicionar à meta?"));
-          if (!isNaN(val) && val > 0) { g.currentValue += val; saveDataToFirestore(); renderGoals(); alert("Valor adicionado."); }
+          if (!isNaN(val) && val > 0) { g.currentValue += val; saveDataToFirestore(); alert("Valor adicionado."); }
         }
       }
 
@@ -1060,7 +1083,7 @@
         let mStr = formatMonthYear(now);
         let start = new Date(now.getFullYear(), now.getMonth(), settings.closingDay);
         let end = new Date(now.getFullYear(), now.getMonth() + 1, settings.closingDay - 1);
-        let totalAccounts = data.accounts.reduce((sum, a) => sum + (a.currentBalance || a.initialBalance || 0), 0);
+        let totalAccounts = data.accounts.reduce((sum, a) => sum + (a.currentBalance || 0), 0);
         document.getElementById("totalEmContas").textContent = "Total em Contas: " + formatCurrency(totalAccounts);
 
         let fixedTotal = 0;
@@ -1292,14 +1315,22 @@
         let tbody = document.getElementById("searchResults");
         tbody.innerHTML = "";
         results.forEach(t => {
-          let bank = data.accounts.find(a => a.id === t.bankId);
+          let accountInfo = "";
+          if (t.type === "transfer") {
+            let source = data.accounts.find(a => a.id === t.sourceAccount);
+            let dest = data.accounts.find(a => a.id === t.destinationAccount);
+            accountInfo = `${source ? source.name : "Conta não encontrada"} -> ${dest ? dest.name : "Conta não encontrada"}`;
+          } else {
+            let bank = data.accounts.find(a => a.id === t.bankId);
+            accountInfo = bank ? bank.name : "Conta não encontrada";
+          }
           let tr = document.createElement("tr");
           tr.innerHTML = `<td>${t.id}</td>
                           <td>${t.date}</td>
                           <td>${t.description}</td>
                           <td>${formatCurrency(t.type === "expense" ? -t.amount : t.amount)}</td>
                           <td>${t.type === "income" ? "Receita" : t.type === "expense" ? "Despesa" : "Transferência"}</td>
-                          <td>${bank ? bank.name : "Conta não encontrada"}</td>
+                          <td>${accountInfo}</td>
                           <td>${t.tags ? t.tags.join(", ") : ""}</td>`;
           tbody.appendChild(tr);
         });
@@ -1323,14 +1354,22 @@
         if (curr) { settings.currencySymbol = curr; }
         let closingDay = parseInt(document.getElementById("closingDay").value);
         if (!isNaN(closingDay) && closingDay >= 1 && closingDay <= 31) { settings.closingDay = closingDay; }
-        saveDataToFirestore(); updateDashboard(); renderTransactions();
+        saveDataToFirestore();
         alert("Configurações aplicadas!");
       }
       function exportCSV() {
-        let csv = "ID,Data,Descrição,Valor,Tipo,Conta,Tags\n";
+        let csv = "ID,Data,Descrição,Valor,Tipo,Conta Origem,Conta Destino,Tags\n";
         data.transactions.forEach(t => {
-          let bank = data.accounts.find(a => a.id === t.bankId);
-          csv += `${t.id},${t.date},"${t.description}",${t.amount},${t.type},${bank ? bank.name : ""},"${t.tags ? t.tags.join(" ") : ""}"\n`;
+          let accountInfo = "";
+          if (t.type === "transfer") {
+            let source = data.accounts.find(a => a.id === t.sourceAccount);
+            let dest = data.accounts.find(a => a.id === t.destinationAccount);
+            accountInfo = `${source ? source.name : ""},${dest ? dest.name : ""}`;
+          } else {
+            let bank = data.accounts.find(a => a.id === t.bankId);
+            accountInfo = `${bank ? bank.name : ""},`;
+          }
+          csv += `${t.id},${t.date},"${t.description}",${t.amount},${t.type},${accountInfo},"${t.tags ? t.tags.join(" ") : ""}"\n`;
         });
         let blob = new Blob([csv], { type: "text/csv" });
         let url = window.URL.createObjectURL(blob);
@@ -1351,17 +1390,23 @@
             let line = lines[i].trim();
             if (!line) continue;
             let cols = line.split(",");
-            data.transactions.push({
+            let t = {
               id: cols[0],
               date: cols[1],
               description: cols[2].replace(/"/g, ""),
               amount: parseFloat(cols[3]),
               type: cols[4],
-              bankId: "",
-              tags: cols[6] ? cols[6].split(" ") : []
-            });
+              tags: cols[7] ? cols[7].split(" ") : []
+            };
+            if (t.type === "transfer") {
+              t.sourceAccount = cols[5];
+              t.destinationAccount = cols[6];
+            } else {
+              t.bankId = cols[5];
+            }
+            data.transactions.push(t);
           }
-          saveDataToFirestore(); renderTransactions(); updateDashboard();
+          saveDataToFirestore();
           alert("CSV importado (revise as contas vinculadas manualmente).");
         };
         reader.readAsText(file);
@@ -1385,8 +1430,8 @@
         try {
           let obj = JSON.parse(txt);
           if (obj.accounts && obj.transactions && obj.recurringBills && obj.budgets && obj.goals) {
-            data = obj; saveDataToFirestore();
-            renderAccounts(); renderTransactions(); renderRecurringBills(); renderBudgets(); renderGoals(); updateDashboard();
+            data = obj;
+            saveDataToFirestore();
             document.getElementById("restoreData").value = "";
             alert("Backup restaurado!");
           } else { alert("Backup inválido."); }
@@ -1413,14 +1458,7 @@
        * INICIALIZAÇÃO
        ****************************/
       function init() {
-        updateAccountBalances();
-        renderAccounts();
-        renderTransactions();
-        renderRecurringBills();
-        renderBudgets();
-        renderGoals();
-        updateDashboard();
-        updateDeclarationBankOptions();
+        updateAllSections();
         document.getElementById("transactionType").addEventListener("change", function() {
           if (this.value === "transfer") {
             document.getElementById("transferOptions").style.display = "block";
@@ -1430,11 +1468,11 @@
             document.getElementById("transactionBankGroup").style.display = "block";
           }
         });
-        document.getElementById("transactionPeriod").addEventListener("change", function() {
-          if (this.value === "specificMonth") {
-            document.getElementById("specificMonthGroup").style.display = "block";
+        document.getElementById("filterType").addEventListener("change", function() {
+          if (this.value === "dateRange") {
+            document.getElementById("dateRangeGroup").style.display = "block";
           } else {
-            document.getElementById("specificMonthGroup").style.display = "none";
+            document.getElementById("dateRangeGroup").style.display = "none";
           }
         });
       }
