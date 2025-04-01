@@ -92,11 +92,30 @@
     body.light-mode form, body.light-mode .summary-box, body.light-mode table th, body.light-mode table td {
       background: #fff; color: #333;
     }
+    /* CHATINHO (BOT FLUTUANTE) */
+    #chatbot {
+      position: fixed; bottom: 20px; right: 20px; cursor: pointer; z-index: 1000;
+    }
+    #chatbot img {
+      width: 50px; height: 50px; border-radius: 50%; box-shadow: 0 0 10px rgba(0,0,0,0.5);
+    }
+    #chatWindow {
+      display: none; position: fixed; bottom: 80px; right: 20px; width: 300px; height: 400px;
+      background: #2a2a2a; border: 1px solid #3a3a3a; border-radius: 4px; padding: 10px; z-index: 1000;
+    }
+    #chatMessages {
+      height: 320px; overflow-y: scroll; padding: 10px; background: #333; border-radius: 4px;
+    }
+    #chatMessages p { margin: 5px 0; }
+    #chatInput { width: 100%; padding: 5px; margin-top: 10px; background: #3a3a3a; border: none; color: #fff; }
+    #chatWindow button { width: 100%; margin-top: 5px; }
   </style>
   <!-- Adicionando o SDK do Firebase -->
   <script src="https://www.gstatic.com/firebasejs/8.0.0/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.0.0/firebase-auth.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.0.0/firebase-firestore.js"></script>
+  <!-- Adicionando a API do Google (para Gemini) -->
+  <script src="https://apis.google.com/js/api.js"></script>
 </head>
 <body>
   <!-- Tela de login -->
@@ -166,6 +185,7 @@
           <h3>Lembretes de Vencimento</h3>
           <ul id="remindersList"></ul>
         </div>
+        <button onclick="updateInsightsAndReminders()">Atualizar Informações</button>
       </section>
 
       <!-- CONTAS BANCÁRIAS -->
@@ -478,6 +498,7 @@
       <section id="help">
         <h2>Ajuda - Guia do Programa</h2>
         <ul>
+          <li><strong>Chatinho:</strong> Use o bot flutuante para perguntas ou registrar dados automaticamente (ex.: "Adicionar transação: 500 reais, aluguel, despesa, dia 10/10/2023, banco X").</li>
           <li><strong>Contas Bancárias:</strong> Cadastre suas contas. O saldo atual é calculado a partir do saldo inicial mais as transações.</li>
           <li><strong>Transações:</strong> Registre receitas, despesas e transferências. O saldo das contas é atualizado automaticamente.</li>
           <li><strong>Contas Fixas:</strong> Adicione contas fixas e pague-as diretamente, gerando uma transação de despesa.</li>
@@ -515,8 +536,20 @@
       <p>Gerenciador Financeiro © 2025</p>
     </footer>
 
+    <!-- CHATINHO (BOT FLUTUANTE) -->
+    <div id="chatbot">
+      <img src="https://img.icons8.com/emoji/48/000000/robot-emoji.png" alt="Chatinho">
+    </div>
+    <div id="chatWindow">
+      <div id="chatMessages">
+        <p><strong>Chatinho:</strong> Oi! Eu sou o Chatinho, seu ajudante financeiro. Pergunte algo ou me diga o que registrar!</p>
+      </div>
+      <input type="text" id="chatInput" placeholder="Digite aqui...">
+      <button onclick="sendMessage()">Enviar</button>
+    </div>
+
     <script>
-      // Configuração do Firebase (SUBSTITUA PELAS SUAS CREDENCIAIS)
+      // Configuração do Firebase
       const firebaseConfig = {
         apiKey: "AIzaSyBVCtmkrtBtVl3A4xcYxckHFFa_eHxiQ0w",
         authDomain: "gerenciador-financeiro-6d8c2.firebaseapp.com",
@@ -527,6 +560,14 @@
       };
       firebase.initializeApp(firebaseConfig);
       const db = firebase.firestore();
+
+      // Inicializar API do Gemini
+      gapi.load('client', function() {
+        gapi.client.init({
+          apiKey: 'AIzaSyDHoCnJamvhgRDNdCUfQCsazCY5AFBftG0', // SUBSTITUA PELA CHAVE QUE VOCÊ GEROU NO GOOGLE CLOUD
+          discoveryDocs: ['https://generativelanguage.googleapis.com/$discovery/rest?version=v1beta'],
+        });
+      });
 
       // Função de login
       function login() {
@@ -547,7 +588,6 @@
           document.getElementById('app').style.display = 'none';
           document.getElementById('loginForm').style.display = 'block';
         }).catch((error) => {
-          console.error("Erro ao fazer logout:", error);
           alert("Erro ao fazer logout: " + error.message);
         });
       }
@@ -599,7 +639,6 @@
           if (storedSettings) settings = JSON.parse(storedSettings);
           init();
         } catch (error) {
-          console.error("Erro ao carregar dados:", error);
           alert("Erro ao carregar dados do Firestore.");
         }
       }
@@ -612,7 +651,6 @@
           localStorage.setItem("financialManagerSettings", JSON.stringify(settings));
           updateAllSections();
         } catch (error) {
-          console.error("Erro ao salvar dados:", error);
           alert("Erro ao salvar dados no Firestore.");
         }
       }
@@ -805,7 +843,7 @@
         if (typeVal === "transfer") {
           const sourceAccount = document.getElementById("sourceAccount").value;
           const destinationAccount = document.getElementById("destinationAccount").value;
-          if (!sourceAccount || !destinationAccount || sourceAccount === destinationAccount) { alert("Selecione contas de origem e destino diferentes para a transferência."); return; }
+          if (!sourceAccount || !destinationAccount || sourceAccount === destinationAccount) { alert("Selecione contas de origem e destino diferentes."); return; }
           if (!idField.value) {
             data.transactions.push({ id: generateId("trx"), date: dateVal, description: descVal, amount: amtVal, type: "transfer", sourceAccount: sourceAccount, destinationAccount: destinationAccount, tags: tagsVal });
           } else {
@@ -980,7 +1018,7 @@
           if (b) { b.category = catVal; b.limit = limitVal; }
         }
         idField.value = ""; document.getElementById("budgetCategory").value = ""; document.getElementById("budgetLimit").value = "";
-        respondeDataToFirestore();
+        saveDataToFirestore();
         alert("Orçamento salvo com sucesso!");
       }
       function editBudget(id) {
@@ -1086,8 +1124,7 @@
         let totalAccounts = data.accounts.reduce((sum, a) => sum + (a.currentBalance || 0), 0);
         document.getElementById("totalEmContas").textContent = "Total em Contas: " + formatCurrency(totalAccounts);
 
-        let fixedTotal = 0;
-        let paidFixed = 0;
+        let fixedTotal = 0, paidFixed = 0;
         data.recurringBills.forEach(bill => {
           fixedTotal += bill.amount;
           if (data.transactions.some(t => t.type === "expense" && t.tags && t.tags.includes("recorrente") && t.description === "Pagamento de: " + bill.description && new Date(t.date) >= start && new Date(t.date) <= end)) {
@@ -1106,20 +1143,23 @@
         });
         document.getElementById("receitasMes").textContent = `Receitas (${mStr}): ${formatCurrency(income)}`;
         document.getElementById("gastosMes").textContent = `Gastos (${mStr}): ${formatCurrency(expense)}`;
+      }
 
-        let insight = (income - expense < 0) ? "Você está gastando mais do que recebe." : "Você está com saldo positivo.";
-        if (income > 0) insight += " Utilizou " + ((expense / income) * 100).toFixed(2) + "% das receitas.";
+      async function updateInsightsAndReminders() {
+        updateDashboard();
+        const totalAccounts = data.accounts.reduce((sum, a) => sum + (a.currentBalance || 0), 0);
+        const questionInsights = `O usuário tem um saldo total de ${totalAccounts}. Ele está com saldo positivo ou negativo? Responda em uma frase curta.`;
+        const insight = await askGemini(questionInsights);
         document.getElementById("insightsText").textContent = insight;
 
-        let today = now.getDate();
-        let reminders = data.recurringBills.filter(rb => rb.dueDay >= today && (rb.dueDay - today) <= 5);
-        let remList = document.getElementById("remindersList");
-        remList.innerHTML = "";
-        reminders.forEach(rb => {
-          let li = document.createElement("li");
-          li.textContent = `${rb.description} - vence em ${rb.dueDay - today} dia(s)`;
-          remList.appendChild(li);
-        });
+        const now = new Date();
+        const today = now.getDate();
+        const reminders = data.recurringBills.filter(rb => rb.dueDay >= today && (rb.dueDay - today) <= 5);
+        const reminderText = reminders.map(rb => `${rb.description} - vence em ${rb.dueDay - today} dia(s)`).join('\n');
+        const questionReminders = `Aqui estão os lembretes de vencimento:\n${reminderText}\nFormate isso de forma amigável em poucas palavras.`;
+        const formattedReminders = await askGemini(questionReminders);
+        const remList = document.getElementById("remindersList");
+        remList.innerHTML = formattedReminders.replace(/\n/g, '<br>');
       }
 
       /****************************
@@ -1168,6 +1208,7 @@
 
       /****************************
        * DECLARAÇÃO ANUAL DO MEI
+       * (mantida sem alterações)
        ****************************/
       function updateDeclarationBankOptions() {
         const sel = document.getElementById("declarationBank");
@@ -1216,6 +1257,7 @@
 
       /****************************
        * ESTATÍSTICAS (GRÁFICOS)
+       * (mantida sem alterações)
        ****************************/
       function drawCharts() {
         drawPieChart();
@@ -1297,6 +1339,7 @@
 
       /****************************
        * BUSCA AVANÇADA
+       * (mantida sem alterações)
        ****************************/
       function advancedSearch() {
         let start = document.getElementById("searchStartDate").value;
@@ -1338,6 +1381,7 @@
 
       /****************************
        * CONFIGURAÇÕES
+       * (mantida sem alterações)
        ****************************/
       function toggleTheme() {
         if (settings.theme === "dark") {
@@ -1414,6 +1458,7 @@
 
       /****************************
        * BACKUP & RESTAURAÇÃO
+       * (mantida sem alterações)
        ****************************/
       function generateBackup() {
         document.getElementById("backupData").value = JSON.stringify(data);
@@ -1440,6 +1485,7 @@
 
       /****************************
        * LIMPAR DADOS
+       * (mantida sem alterações)
        ****************************/
       async function clearData() {
         if (confirm("Tem certeza que deseja limpar TODOS os dados? Isso apagará tudo do Firestore.")) {
@@ -1451,6 +1497,82 @@
             alert("Dados limpos! Recarregando...");
             location.reload();
           }
+        }
+      }
+
+      /****************************
+       * CHATINHO (BOT INTELIGENTE)
+       ****************************/
+      document.getElementById("chatbot").addEventListener("click", function() {
+        const chatWindow = document.getElementById("chatWindow");
+        chatWindow.style.display = chatWindow.style.display === "none" ? "block" : "none";
+      });
+
+      async function askGemini(question) {
+        try {
+          const response = await gapi.client.generativelanguage.v1beta.models.generateContent({
+            model: 'models/gemini-pro',
+            contents: [{
+              parts: [{
+                text: question
+              }]
+            }]
+          });
+          return response.result.candidates[0].content.parts[0].text;
+        } catch (error) {
+          console.error("Erro ao chamar Gemini:", error);
+          return "Desculpe, não consegui processar isso agora.";
+        }
+      }
+
+      async function sendMessage() {
+        const input = document.getElementById("chatInput");
+        const question = input.value.trim();
+        if (!question) return;
+        input.value = "";
+        const messages = document.getElementById("chatMessages");
+        messages.innerHTML += `<p><strong>Você:</strong> ${question}</p>`;
+        
+        if (question.toLowerCase().includes("adicionar transação")) {
+          const answer = await processTransactionInput(question);
+          messages.innerHTML += `<p><strong>Chatinho:</strong> ${answer}</p>`;
+        } else {
+          const dataStr = JSON.stringify(data);
+          const fullQuestion = `Com base nestes dados financeiros:\n${dataStr}\nResponda à pergunta: ${question}`;
+          const answer = await askGemini(fullQuestion);
+          messages.innerHTML += `<p><strong>Chatinho:</strong> ${answer}</p>`;
+        }
+        messages.scrollTop = messages.scrollHeight;
+      }
+
+      async function processTransactionInput(input) {
+        const regex = /adicionar transação[:\s]*(\d+(?:[,.]\d+)?)\s*(reais)?\s*,\s*([^,]+),\s*(receita|despesa|transferência),\s*(?:dia\s*)?(\d{1,2}\/\d{1,2}\/\d{4}),\s*([^]+)/i;
+        const match = input.match(regex);
+        if (!match) return "Por favor, use o formato: 'Adicionar transação: 500 reais, aluguel, despesa, dia 10/10/2023, banco X'";
+        
+        let [, amountStr, , description, type, dateStr, bankName] = match;
+        const amount = parseFloat(amountStr.replace(",", "."));
+        const [day, month, year] = dateStr.split("/");
+        const date = `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+        const bank = data.accounts.find(a => a.name.toLowerCase().includes(bankName.trim().toLowerCase()));
+        
+        if (!bank) return "Conta bancária não encontrada. Cadastre-a primeiro!";
+        if (isNaN(amount) || amount <= 0) return "Valor inválido.";
+        
+        if (type.toLowerCase() === "transferência") {
+          return "Transferências precisam de conta de origem e destino. Use o formulário manual por enquanto!";
+        } else {
+          data.transactions.push({
+            id: generateId("trx"),
+            date: date,
+            description: description.trim(),
+            amount: amount,
+            type: type.toLowerCase() === "receita" ? "income" : "expense",
+            bankId: bank.id,
+            tags: []
+          });
+          await saveDataToFirestore();
+          return `Transação "${description}" de ${formatCurrency(amount)} (${type}) registrada com sucesso em ${bank.name}!`;
         }
       }
 
