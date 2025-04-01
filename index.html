@@ -114,8 +114,6 @@
   <script src="https://www.gstatic.com/firebasejs/8.0.0/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.0.0/firebase-auth.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.0.0/firebase-firestore.js"></script>
-  <!-- Adicionando a API do Google (para Gemini) -->
-  <script src="https://apis.google.com/js/api.js"></script>
 </head>
 <body>
   <!-- Tela de login -->
@@ -554,20 +552,12 @@
         apiKey: "AIzaSyBVCtmkrtBtVl3A4xcYxckHFFa_eHxiQ0w",
         authDomain: "gerenciador-financeiro-6d8c2.firebaseapp.com",
         projectId: "gerenciador-financeiro-6d8c2",
-        storageBucket: "gerenciador-financeiro-6d8c2.firebasestorage.app",
+        storageBucket: "gerenciador-financeiro-6d8c2.appspot.com",
         messagingSenderId: "693980228824",
         appId: "1:693980228824:web:d183b4b3f61978f2c83bad"
       };
       firebase.initializeApp(firebaseConfig);
       const db = firebase.firestore();
-
-      // Inicializar API do Gemini
-      gapi.load('client', function() {
-        gapi.client.init({
-          apiKey: 'AIzaSyDHoCnJamvhgRDNdCUfQCsazCY5AFBftG0', // SUBSTITUA PELA CHAVE QUE VOCÊ GEROU NO GOOGLE CLOUD
-          discoveryDocs: ['https://generativelanguage.googleapis.com/$discovery/rest?version=v1beta'],
-        });
-      });
 
       // Função de login
       function login() {
@@ -1052,7 +1042,9 @@
       /****************************
        * METAS
        ****************************/
-      function renderGoals() {
+      function renderGoals()
+
+{
         const container = document.getElementById("goalsList");
         container.innerHTML = "";
         if (data.goals.length === 0) { container.innerHTML = "<p>Nenhuma meta definida.</p>"; return; }
@@ -1145,6 +1137,35 @@
         document.getElementById("gastosMes").textContent = `Gastos (${mStr}): ${formatCurrency(expense)}`;
       }
 
+      async function askGemini(question) {
+        const apiKey = 'AIzaSyDHoCnJamvhgRDNdCUfQCsazCY5AFBftG0'; // Substitua pela sua chave de API do Google Cloud
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`;
+        const requestBody = {
+          contents: [{
+            parts: [{
+              text: question
+            }]
+          }]
+        };
+        try {
+          const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(requestBody)
+          });
+          if (!response.ok) {
+            throw new Error(`Erro HTTP! status: ${response.status}`);
+          }
+          const data = await response.json();
+          return data.candidates[0].content.parts[0].text;
+        } catch (error) {
+          console.error("Erro ao chamar Gemini:", error);
+          return "Desculpe, não consegui processar isso agora.";
+        }
+      }
+
       async function updateInsightsAndReminders() {
         updateDashboard();
         const totalAccounts = data.accounts.reduce((sum, a) => sum + (a.currentBalance || 0), 0);
@@ -1208,7 +1229,6 @@
 
       /****************************
        * DECLARAÇÃO ANUAL DO MEI
-       * (mantida sem alterações)
        ****************************/
       function updateDeclarationBankOptions() {
         const sel = document.getElementById("declarationBank");
@@ -1257,7 +1277,6 @@
 
       /****************************
        * ESTATÍSTICAS (GRÁFICOS)
-       * (mantida sem alterações)
        ****************************/
       function drawCharts() {
         drawPieChart();
@@ -1339,7 +1358,6 @@
 
       /****************************
        * BUSCA AVANÇADA
-       * (mantida sem alterações)
        ****************************/
       function advancedSearch() {
         let start = document.getElementById("searchStartDate").value;
@@ -1381,7 +1399,6 @@
 
       /****************************
        * CONFIGURAÇÕES
-       * (mantida sem alterações)
        ****************************/
       function toggleTheme() {
         if (settings.theme === "dark") {
@@ -1458,7 +1475,6 @@
 
       /****************************
        * BACKUP & RESTAURAÇÃO
-       * (mantida sem alterações)
        ****************************/
       function generateBackup() {
         document.getElementById("backupData").value = JSON.stringify(data);
@@ -1485,7 +1501,6 @@
 
       /****************************
        * LIMPAR DADOS
-       * (mantida sem alterações)
        ****************************/
       async function clearData() {
         if (confirm("Tem certeza que deseja limpar TODOS os dados? Isso apagará tudo do Firestore.")) {
@@ -1507,23 +1522,6 @@
         const chatWindow = document.getElementById("chatWindow");
         chatWindow.style.display = chatWindow.style.display === "none" ? "block" : "none";
       });
-
-      async function askGemini(question) {
-        try {
-          const response = await gapi.client.generativelanguage.v1beta.models.generateContent({
-            model: 'models/gemini-pro',
-            contents: [{
-              parts: [{
-                text: question
-              }]
-            }]
-          });
-          return response.result.candidates[0].content.parts[0].text;
-        } catch (error) {
-          console.error("Erro ao chamar Gemini:", error);
-          return "Desculpe, não consegui processar isso agora.";
-        }
-      }
 
       async function sendMessage() {
         const input = document.getElementById("chatInput");
