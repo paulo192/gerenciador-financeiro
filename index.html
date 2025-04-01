@@ -547,1296 +547,1273 @@
             <button onclick="sendMessage()">Enviar</button>
         </div>
 
-       <script>
-    // Configuração do Firebase
-    const firebaseConfig = {
-        apiKey: "AIzaSyBVCtmkrtBtVl3A4xcYxckHFFa_eHxiQ0w",
-        authDomain: "gerenciador-financeiro-6d8c2.firebaseapp.com",
-        projectId: "gerenciador-financeiro-6d8c2",
-        storageBucket: "gerenciador-financeiro-6d8c2.firebasestorage.app",
-        messagingSenderId: "693980228824",
-        appId: "1:693980228824:web:d183b4b3f61978f2c83bad"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
+        <script>
+            // Configuração do Firebase
+            const firebaseConfig = {
+                apiKey: "AIzaSyBVCtmkrtBtVl3A4xcYxckHFFa_eHxiQ0w", // Substitua pela sua chave do Firebase
+                authDomain: "gerenciador-financeiro-6d8c2.firebaseapp.com", // Substitua pelo seu domínio
+                projectId: "gerenciador-financeiro-6d8c2", // Substitua pelo seu ID de projeto
+                storageBucket: "gerenciador-financeiro-6d8c2.firebasestorage.app", // Substitua pelo seu bucket
+                messagingSenderId: "693980228824", // Substitua pelo seu Sender ID
+                appId: "1:693980228824:web:d183b4b3f61978f2c83bad" // Substitua pelo seu App ID
+            };
+            firebase.initializeApp(firebaseConfig);
+            const db = firebase.firestore();
 
-    // Função de login
-    function login() {
-        var email = document.getElementById('email').value;
-        var password = document.getElementById('password').value;
-        firebase.auth().signInWithEmailAndPassword(email, password)
-            .then((userCredential) => {
-                document.getElementById('loginForm').style.display = 'none';
-                document.getElementById('app').style.display = 'block';
-            })
-            .catch((error) => {
-                alert('Erro: ' + error.message);
-            });
-    }
-
-    function logout() {
-        firebase.auth().signOut().then(() => {
-            document.getElementById('app').style.display = 'none';
-            document.getElementById('loginForm').style.display = 'block';
-        }).catch((error) => {
-            alert("Erro ao fazer logout: " + error.message);
-        });
-    }
-
-    firebase.auth().onAuthStateChanged((user) => {
-        if (user) {
-            document.getElementById('loginForm').style.display = 'none';
-            document.getElementById('app').style.display = 'block';
-            loadDataFromFirestore();
-        } else {
-            document.getElementById('loginForm').style.display = 'block';
-            document.getElementById('app').style.display = 'none';
-        }
-    });
-
-    /****************************
-     * ESTRUTURA DE DADOS
-     ****************************/
-    let data = {
-        accounts: [],
-        transactions: [],
-        recurringBills: [],
-        budgets: [],
-        goals: []
-    };
-    let settings = {
-        currencySymbol: "R$",
-        theme: "dark",
-        closingDay: 1
-    };
-
-    function getUserId() {
-        const user = firebase.auth().currentUser;
-        return user ? user.uid : null;
-    }
-
-    async function loadDataFromFirestore() {
-        const userId = getUserId();
-        if (!userId) return;
-        try {
-            const doc = await db.collection('users').doc(userId).get();
-            if (doc.exists) {
-                data = doc.data();
-            } else {
-                data = { accounts: [], transactions: [], recurringBills: [], budgets: [], goals: [] };
-                await db.collection('users').doc(userId).set(data);
+            // Função de login
+            function login() {
+                var email = document.getElementById('email').value;
+                var password = document.getElementById('password').value;
+                firebase.auth().signInWithEmailAndPassword(email, password)
+                    .then((userCredential) => {
+                        document.getElementById('loginForm').style.display = 'none';
+                        document.getElementById('app').style.display = 'block';
+                    })
+                    .catch((error) => {
+                        alert('Erro: ' + error.message);
+                    });
             }
-            const storedSettings = localStorage.getItem("financialManagerSettings");
-            if (storedSettings) settings = JSON.parse(storedSettings);
-            init();
-        } catch (error) {
-            alert("Erro ao carregar dados do Firestore.");
-        }
-    }
 
-    async function saveDataToFirestore() {
-        const userId = getUserId();
-        if (!userId) return;
-        try {
-            await db.collection('users').doc(userId).set(data);
-            localStorage.setItem("financialManagerSettings", JSON.stringify(settings));
-            updateAllSections();
-        } catch (error) {
-            alert("Erro ao salvar dados no Firestore.");
-        }
-    }
+            function logout() {
+                firebase.auth().signOut().then(() => {
+                    document.getElementById('app').style.display = 'none';
+                    document.getElementById('loginForm').style.display = 'block';
+                }).catch((error) => {
+                    alert("Erro ao fazer logout: " + error.message);
+                });
+            }
 
-    /****************************
-     * UTILITÁRIOS
-     ****************************/
-    function generateId(prefix = "id") { return prefix + "_" + Math.random().toString(36).substring(2, 9); }
-    function formatCurrency(value) {
-        if (isNaN(value)) value = 0;
-        return settings.currencySymbol + " " + value.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    }
-    function formatMonthYear(date) {
-        const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
-        return monthNames[date.getMonth()] + "/" + date.getFullYear();
-    }
-    function showSection(id) {
-        document.querySelectorAll("section").forEach(sec => sec.classList.remove("active"));
-        document.getElementById(id).classList.add("active");
-        if (id === "statistics") drawCharts();
-    }
+            firebase.auth().onAuthStateChanged((user) => {
+                if (user) {
+                    document.getElementById('loginForm').style.display = 'none';
+                    document.getElementById('app').style.display = 'block';
+                    loadDataFromFirestore();
+                } else {
+                    document.getElementById('loginForm').style.display = 'block';
+                    document.getElementById('app').style.display = 'none';
+                }
+            });
 
-    /****************************
-     * SINCRONIZAÇÃO DE CONTAS
-     ****************************/
-    function updateAccountBalances() {
-        data.accounts.forEach(account => {
-            let balance = account.initialBalance || 0;
-            data.transactions.forEach(t => {
-                if (t.type === "income" && t.bankId === account.id) {
-                    balance += t.amount;
-                } else if (t.type === "expense" && t.bankId === account.id) {
-                    balance -= t.amount;
-                } else if (t.type === "transfer") {
-                    if (t.sourceAccount === account.id) {
-                        balance -= t.amount;
-                    } else if (t.destinationAccount === account.id) {
-                        balance += t.amount;
+            /****************************
+             * ESTRUTURA DE DADOS
+             ****************************/
+            let data = {
+                accounts: [],
+                transactions: [],
+                recurringBills: [],
+                budgets: [],
+                goals: []
+            };
+            let settings = {
+                currencySymbol: "R$",
+                theme: "dark",
+                closingDay: 1
+            };
+
+            function getUserId() {
+                const user = firebase.auth().currentUser;
+                return user ? user.uid : null;
+            }
+
+            async function loadDataFromFirestore() {
+                const userId = getUserId();
+                if (!userId) return;
+                try {
+                    const doc = await db.collection('users').doc(userId).get();
+                    if (doc.exists) {
+                        data = doc.data();
+                    } else {
+                        data = { accounts: [], transactions: [], recurringBills: [], budgets: [], goals: [] };
+                        await db.collection('users').doc(userId).set(data);
+                    }
+                    const storedSettings = localStorage.getItem("financialManagerSettings");
+                    if (storedSettings) settings = JSON.parse(storedSettings);
+                    init();
+                } catch (error) {
+                    alert("Erro ao carregar dados do Firestore.");
+                }
+            }
+
+            async function saveDataToFirestore() {
+                const userId = getUserId();
+                if (!userId) return;
+                try {
+                    await db.collection('users').doc(userId).set(data);
+                    localStorage.setItem("financialManagerSettings", JSON.stringify(settings));
+                    updateAllSections();
+                } catch (error) {
+                    alert("Erro ao salvar dados no Firestore.");
+                }
+            }
+
+            /****************************
+             * UTILITÁRIOS
+             ****************************/
+            function generateId(prefix = "id") { return prefix + "_" + Math.random().toString(36).substring(2, 9); }
+            function formatCurrency(value) {
+                if (isNaN(value)) value = 0;
+                return settings.currencySymbol + " " + value.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            }
+            function formatMonthYear(date) {
+                const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+                return monthNames[date.getMonth()] + "/" + date.getFullYear();
+            }
+            function showSection(id) {
+                document.querySelectorAll("section").forEach(sec => sec.classList.remove("active"));
+                document.getElementById(id).classList.add("active");
+                if (id === "statistics") drawCharts();
+            }
+
+            /****************************
+             * SINCRONIZAÇÃO DE CONTAS
+             ****************************/
+            function updateAccountBalances() {
+                data.accounts.forEach(account => {
+                    let balance = account.initialBalance || 0;
+                    data.transactions.forEach(t => {
+                        if (t.type === "income" && t.bankId === account.id) {
+                            balance += t.amount;
+                        } else if (t.type === "expense" && t.bankId === account.id) {
+                            balance -= t.amount;
+                        } else if (t.type === "transfer") {
+                            if (t.sourceAccount === account.id) {
+                                balance -= t.amount;
+                            } else if (t.destinationAccount === account.id) {
+                                balance += t.amount;
+                            }
+                        }
+                    });
+                    account.currentBalance = balance;
+                });
+            }
+
+            function updateAllSections() {
+                updateAccountBalances();
+                renderAccounts();
+                renderTransactions();
+                renderRecurringBills();
+                renderBudgets();
+                renderGoals();
+                updateDashboard();
+                updateDeclarationBankOptions();
+            }
+
+            /****************************
+             * CONTAS BANCÁRIAS
+             ****************************/
+            function renderAccounts() {
+                const tbody = document.getElementById("accountsTableBody");
+                tbody.innerHTML = "";
+                data.accounts.forEach(account => {
+                    const tr = document.createElement("tr");
+                    tr.innerHTML = `<td>${account.id}</td>
+                                    <td>${account.name}</td>
+                                    <td>${formatCurrency(account.currentBalance)}</td>
+                                    <td>
+                                        <button class="action-btn" onclick="editAccount('${account.id}')">Editar</button>
+                                        <button class="action-btn" onclick="deleteAccount('${account.id}')">Deletar</button>
+                                    </td>`;
+                    tbody.appendChild(tr);
+                });
+                const selTrans = document.getElementById("transactionBank");
+                const selSource = document.getElementById("sourceAccount");
+                const selDest = document.getElementById("destinationAccount");
+                if (selTrans) {
+                    selTrans.innerHTML = "";
+                    data.accounts.forEach(acc => {
+                        let opt = document.createElement("option");
+                        opt.value = acc.id; opt.textContent = acc.name;
+                        selTrans.appendChild(opt);
+                    });
+                }
+                if (selSource) {
+                    selSource.innerHTML = "";
+                    data.accounts.forEach(acc => {
+                        let opt = document.createElement("option");
+                        opt.value = acc.id; opt.textContent = acc.name;
+                        selSource.appendChild(opt);
+                    });
+                }
+                if (selDest) {
+                    selDest.innerHTML = "";
+                    data.accounts.forEach(acc => {
+                        let opt = document.createElement("option");
+                        opt.value = acc.id; opt.textContent = acc.name;
+                        selDest.appendChild(opt);
+                    });
+                }
+                const selRec = document.getElementById("recurringBank");
+                if (selRec) {
+                    selRec.innerHTML = "";
+                    let emptyOpt = document.createElement("option");
+                    emptyOpt.value = ""; emptyOpt.textContent = "Nenhuma (pagamento manual)";
+                    selRec.appendChild(emptyOpt);
+                    data.accounts.forEach(acc => {
+                        let opt = document.createElement("option");
+                        opt.value = acc.id; opt.textContent = acc.name;
+                        selRec.appendChild(opt);
+                    });
+                }
+            }
+            function saveAccount() {
+                const idField = document.getElementById("accountId");
+                const bankName = document.getElementById("bankName").value.trim();
+                const initialBal = parseFloat(document.getElementById("initialBalance").value);
+                if (!bankName) { alert("Informe o nome do banco."); return; }
+                if (isNaN(initialBal)) { alert("Informe um saldo válido."); return; }
+                if (!idField.value) {
+                    data.accounts.push({ id: generateId("acc"), name: bankName, initialBalance: initialBal, currentBalance: initialBal });
+                } else {
+                    let acc = data.accounts.find(a => a.id === idField.value);
+                    if (acc) { acc.name = bankName; acc.initialBalance = initialBal; }
+                }
+                idField.value = ""; document.getElementById("bankName").value = ""; document.getElementById("initialBalance").value = "";
+                saveDataToFirestore();
+                alert("Conta salva com sucesso!");
+            }
+            function editAccount(id) {
+                let acc = data.accounts.find(a => a.id === id);
+                if (acc) {
+                    document.getElementById("accountId").value = acc.id;
+                    document.getElementById("bankName").value = acc.name;
+                    document.getElementById("initialBalance").value = acc.initialBalance;
+                    showSection("accounts");
+                }
+            }
+            function deleteAccount(id) {
+                if (!confirm("Confirma exclusão desta conta?")) return;
+                if (data.transactions.some(t => t.bankId === id || (t.type === "transfer" && (t.sourceAccount === id || t.destinationAccount === id))) || data.recurringBills.some(rb => rb.bankId === id)) {
+                    alert("Não é possível excluir: há transações ou contas fixas vinculadas.");
+                    return;
+                }
+                data.accounts = data.accounts.filter(a => a.id !== id);
+                saveDataToFirestore();
+            }
+
+            /****************************
+             * TRANSAÇÕES
+             ****************************/
+            function renderTransactions(filteredTransactions = null) {
+                const tbody = document.getElementById("transactionsTableBody");
+                tbody.innerHTML = "";
+                let transactionsToRender = filteredTransactions || data.transactions;
+                let sorted = transactionsToRender.slice().sort((a, b) => new Date(b.date) - new Date(a.date));
+                sorted.forEach(t => {
+                    let accountInfo = "";
+                    if (t.type === "transfer") {
+                        let source = data.accounts.find(a => a.id === t.sourceAccount);
+                        let dest = data.accounts.find(a => a.id === t.destinationAccount);
+                        accountInfo = `${source ? source.name : "Conta não encontrada"} -> ${dest ? dest.name : "Conta não encontrada"}`;
+                    } else {
+                        let bank = data.accounts.find(a => a.id === t.bankId);
+                        accountInfo = bank ? bank.name : "Conta não encontrada";
+                    }
+                    const tr = document.createElement("tr");
+                    tr.innerHTML = `<td>${t.id}</td>
+                                    <td>${t.date}</td>
+                                    <td>${t.description}</td>
+                                    <td>${formatCurrency(t.type === "expense" ? -t.amount : t.amount)}</td>
+                                    <td>${t.type === "income" ? "Receita" : t.type === "expense" ? "Despesa" : "Transferência"}</td>
+                                    <td>${accountInfo}</td>
+                                    <td>${t.tags ? t.tags.join(", ") : ""}</td>
+                                    <td>
+                                        <button class="action-btn" onclick="editTransaction('${t.id}')">Editar</button>
+                                        <button class="action-btn" onclick="deleteTransaction('${t.id}')">Deletar</button>
+                                    </td>`;
+                    tbody.appendChild(tr);
+                });
+            }
+            function saveTransaction() {
+                const idField = document.getElementById("transactionId");
+                const dateVal = document.getElementById("transactionDate").value;
+                const descVal = document.getElementById("transactionDescription").value.trim();
+                const amtVal = parseFloat(document.getElementById("transactionAmount").value);
+                const typeVal = document.getElementById("transactionType").value;
+                const tagsVal = document.getElementById("transactionTags").value.trim() ? document.getElementById("transactionTags").value.split(",").map(t => t.trim()) : [];
+                if (!dateVal || !descVal || isNaN(amtVal) || amtVal <= 0) { alert("Preencha os campos obrigatórios corretamente."); return; }
+                if (typeVal === "transfer") {
+                    const sourceAccount = document.getElementById("sourceAccount").value;
+                    const destinationAccount = document.getElementById("destinationAccount").value;
+                    if (!sourceAccount || !destinationAccount || sourceAccount === destinationAccount) { alert("Selecione contas de origem e destino diferentes."); return; }
+                    if (!idField.value) {
+                        data.transactions.push({ id: generateId("trx"), date: dateVal, description: descVal, amount: amtVal, type: "transfer", sourceAccount: sourceAccount, destinationAccount: destinationAccount, tags: tagsVal });
+                    } else {
+                        let t = data.transactions.find(t => t.id === idField.value);
+                        if (t) { t.date = dateVal; t.description = descVal; t.amount = amtVal; t.type = "transfer"; t.sourceAccount = sourceAccount; t.destinationAccount = destinationAccount; t.tags = tagsVal; }
+                    }
+                } else {
+                    const bankVal = document.getElementById("transactionBank").value;
+                    if (!bankVal) { alert("Selecione uma conta bancária."); return; }
+                    if (!idField.value) {
+                        data.transactions.push({ id: generateId("trx"), date: dateVal, description: descVal, amount: amtVal, type: typeVal, bankId: bankVal, tags: tagsVal });
+                    } else {
+                        let t = data.transactions.find(t => t.id === idField.value);
+                        if (t) { t.date = dateVal; t.description = descVal; t.amount = amtVal; t.type = typeVal; t.bankId = bankVal; t.tags = tagsVal; }
                     }
                 }
-            });
-            account.currentBalance = balance;
-        });
-    }
-
-    function updateAllSections() {
-        updateAccountBalances();
-        renderAccounts();
-        renderTransactions();
-        renderRecurringBills();
-        renderBudgets();
-        renderGoals();
-        updateDashboard();
-        updateDeclarationBankOptions();
-    }
-
-    /****************************
-     * CONTAS BANCÁRIAS
-     ****************************/
-    function renderAccounts() {
-        const tbody = document.getElementById("accountsTableBody");
-        tbody.innerHTML = "";
-        data.accounts.forEach(account => {
-            const tr = document.createElement("tr");
-            tr.innerHTML = `<td>${account.id}</td>
-                            <td>${account.name}</td>
-                            <td>${formatCurrency(account.currentBalance)}</td>
-                            <td>
-                                <button class="action-btn" onclick="editAccount('${account.id}')">Editar</button>
-                                <button class="action-btn" onclick="deleteAccount('${account.id}')">Deletar</button>
-                            </td>`;
-            tbody.appendChild(tr);
-        });
-        const selTrans = document.getElementById("transactionBank");
-        const selSource = document.getElementById("sourceAccount");
-        const selDest = document.getElementById("destinationAccount");
-        if (selTrans) {
-            selTrans.innerHTML = "";
-            data.accounts.forEach(acc => {
-                let opt = document.createElement("option");
-                opt.value = acc.id; opt.textContent = acc.name;
-                selTrans.appendChild(opt);
-            });
-        }
-        if (selSource) {
-            selSource.innerHTML = "";
-            data.accounts.forEach(acc => {
-                let opt = document.createElement("option");
-                opt.value = acc.id; opt.textContent = acc.name;
-                selSource.appendChild(opt);
-            });
-        }
-        if (selDest) {
-            selDest.innerHTML = "";
-            data.accounts.forEach(acc => {
-                let opt = document.createElement("option");
-                opt.value = acc.id; opt.textContent = acc.name;
-                selDest.appendChild(opt);
-            });
-        }
-        const selRec = document.getElementById("recurringBank");
-        if (selRec) {
-            selRec.innerHTML = "";
-            let emptyOpt = document.createElement("option");
-            emptyOpt.value = ""; emptyOpt.textContent = "Nenhuma (pagamento manual)";
-            selRec.appendChild(emptyOpt);
-            data.accounts.forEach(acc => {
-                let opt = document.createElement("option");
-                opt.value = acc.id; opt.textContent = acc.name;
-                selRec.appendChild(opt);
-            });
-        }
-    }
-    function saveAccount() {
-        const idField = document.getElementById("accountId");
-        const bankName = document.getElementById("bankName").value.trim();
-        const initialBal = parseFloat(document.getElementById("initialBalance").value);
-        if (!bankName) { alert("Informe o nome do banco."); return; }
-        if (isNaN(initialBal)) { alert("Informe um saldo válido."); return; }
-        if (!idField.value) {
-            data.accounts.push({ id: generateId("acc"), name: bankName, initialBalance: initialBal, currentBalance: initialBal });
-        } else {
-            let acc = data.accounts.find(a => a.id === idField.value);
-            if (acc) { acc.name = bankName; acc.initialBalance = initialBal; }
-        }
-        idField.value = ""; document.getElementById("bankName").value = ""; document.getElementById("initialBalance").value = "";
-        saveDataToFirestore();
-        alert("Conta salva com sucesso!");
-    }
-    function editAccount(id) {
-        let acc = data.accounts.find(a => a.id === id);
-        if (acc) {
-            document.getElementById("accountId").value = acc.id;
-            document.getElementById("bankName").value = acc.name;
-            document.getElementById("initialBalance").value = acc.initialBalance;
-            showSection("accounts");
-        }
-    }
-    function deleteAccount(id) {
-        if (!confirm("Confirma exclusão desta conta?")) return;
-        if (data.transactions.some(t => t.bankId === id || (t.type === "transfer" && (t.sourceAccount === id || t.destinationAccount === id))) || data.recurringBills.some(rb => rb.bankId === id)) {
-            alert("Não é possível excluir: há transações ou contas fixas vinculadas.");
-            return;
-        }
-        data.accounts = data.accounts.filter(a => a.id !== id);
-        saveDataToFirestore();
-    }
-
-    /****************************
-     * TRANSAÇÕES
-     ****************************/
-    function renderTransactions(filteredTransactions = null) {
-        const tbody = document.getElementById("transactionsTableBody");
-        tbody.innerHTML = "";
-        let transactionsToRender = filteredTransactions || data.transactions;
-        let sorted = transactionsToRender.slice().sort((a, b) => new Date(b.date) - new Date(a.date));
-        sorted.forEach(t => {
-            let accountInfo = "";
-            if (t.type === "transfer") {
-                let source = data.accounts.find(a => a.id === t.sourceAccount);
-                let dest = data.accounts.find(a => a.id === t.destinationAccount);
-                accountInfo = `${source ? source.name : "Conta não encontrada"} -> ${dest ? dest.name : "Conta não encontrada"}`;
-            } else {
-                let bank = data.accounts.find(a => a.id === t.bankId);
-                accountInfo = bank ? bank.name : "Conta não encontrada";
+                clearTransactionForm();
+                saveDataToFirestore();
+                alert("Transação salva com sucesso!");
             }
-            const tr = document.createElement("tr");
-            tr.innerHTML = `<td>${t.id}</td>
-                            <td>${t.date}</td>
-                            <td>${t.description}</td>
-                            <td>${formatCurrency(t.type === "expense" ? -t.amount : t.amount)}</td>
-                            <td>${t.type === "income" ? "Receita" : t.type === "expense" ? "Despesa" : "Transferência"}</td>
-                            <td>${accountInfo}</td>
-                            <td>${t.tags ? t.tags.join(", ") : ""}</td>
-                            <td>
-                                <button class="action-btn" onclick="editTransaction('${t.id}')">Editar</button>
-                                <button class="action-btn" onclick="deleteTransaction('${t.id}')">Deletar</button>
-                            </td>`;
-            tbody.appendChild(tr);
-        });
-    }
-    function saveTransaction() {
-        const idField = document.getElementById("transactionId");
-        const dateVal = document.getElementById("transactionDate").value;
-        const descVal = document.getElementById("transactionDescription").value.trim();
-        const amtVal = parseFloat(document.getElementById("transactionAmount").value);
-        const typeVal = document.getElementById("transactionType").value;
-        const tagsVal = document.getElementById("transactionTags").value.trim() ? document.getElementById("transactionTags").value.split(",").map(t => t.trim()) : [];
-        if (!dateVal || !descVal || isNaN(amtVal) || amtVal <= 0) { alert("Preencha os campos obrigatórios corretamente."); return; }
-        if (typeVal === "transfer") {
-            const sourceAccount = document.getElementById("sourceAccount").value;
-            const destinationAccount = document.getElementById("destinationAccount").value;
-            if (!sourceAccount || !destinationAccount || sourceAccount === destinationAccount) { alert("Selecione contas de origem e destino diferentes."); return; }
-            if (!idField.value) {
-                data.transactions.push({ id: generateId("trx"), date: dateVal, description: descVal, amount: amtVal, type: "transfer", sourceAccount: sourceAccount, destinationAccount: destinationAccount, tags: tagsVal });
-            } else {
-                let t = data.transactions.find(t => t.id === idField.value);
-                if (t) { t.date = dateVal; t.description = descVal; t.amount = amtVal; t.type = "transfer"; t.sourceAccount = sourceAccount; t.destinationAccount = destinationAccount; t.tags = tagsVal; }
-            }
-        } else {
-            const bankVal = document.getElementById("transactionBank").value;
-            if (!bankVal) { alert("Selecione uma conta bancária."); return; }
-            if (!idField.value) {
-                data.transactions.push({ id: generateId("trx"), date: dateVal, description: descVal, amount: amtVal, type: typeVal, bankId: bankVal, tags: tagsVal });
-            } else {
-                let t = data.transactions.find(t => t.id === idField.value);
-                if (t) { t.date = dateVal; t.description = descVal; t.amount = amtVal; t.type = typeVal; t.bankId = bankVal; t.tags = tagsVal; }
-            }
-        }
-        clearTransactionForm();
-        saveDataToFirestore();
-        alert("Transação salva com sucesso!");
-    }
-    function clearTransactionForm() {
-        document.getElementById("transactionId").value = "";
-        document.getElementById("transactionDate").value = "";
-        document.getElementById("transactionDescription").value = "";
-        document.getElementById("transactionAmount").value = "";
-        document.getElementById("transactionType").value = "income";
-        document.getElementById("transactionBank").value = "";
-        document.getElementById("transactionTags").value = "";
-        document.getElementById("transferOptions").style.display = "none";
-        document.getElementById("transactionBankGroup").style.display = "block";
-    }
-    function editTransaction(id) {
-        let t = data.transactions.find(t => t.id === id);
-        if (t) {
-            document.getElementById("transactionId").value = t.id;
-            document.getElementById("transactionDate").value = t.date;
-            document.getElementById("transactionDescription").value = t.description;
-            document.getElementById("transactionAmount").value = t.amount;
-            document.getElementById("transactionType").value = t.type;
-            if (t.type === "transfer") {
-                document.getElementById("sourceAccount").value = t.sourceAccount;
-                document.getElementById("destinationAccount").value = t.destinationAccount;
-                document.getElementById("transferOptions").style.display = "block";
-                document.getElementById("transactionBankGroup").style.display = "none";
-            } else {
-                document.getElementById("transactionBank").value = t.bankId;
+            function clearTransactionForm() {
+                document.getElementById("transactionId").value = "";
+                document.getElementById("transactionDate").value = "";
+                document.getElementById("transactionDescription").value = "";
+                document.getElementById("transactionAmount").value = "";
+                document.getElementById("transactionType").value = "income";
+                document.getElementById("transactionBank").value = "";
+                document.getElementById("transactionTags").value = "";
                 document.getElementById("transferOptions").style.display = "none";
                 document.getElementById("transactionBankGroup").style.display = "block";
             }
-            document.getElementById("transactionTags").value = t.tags ? t.tags.join(", ") : "";
-            showSection("transactions");
-        }
-    }
-    function deleteTransaction(id) {
-        if (!confirm("Confirma exclusão desta transação?")) return;
-        data.transactions = data.transactions.filter(t => t.id !== id);
-        saveDataToFirestore();
-    }
-    function filterTransactions() {
-        let filterType = document.getElementById("filterType").value;
-        let filteredTransactions = [];
-        if (filterType === "all") {
-            filteredTransactions = data.transactions;
-        } else if (filterType === "income" || filterType === "expense" || filterType === "transfer") {
-            filteredTransactions = data.transactions.filter(t => t.type === filterType);
-        } else if (filterType === "dateRange") {
-            let startDate = document.getElementById("startDate").value;
-            let endDate = document.getElementById("endDate").value;
-            if (!startDate || !endDate) { alert("Selecione as datas de início e fim."); return; }
-            filteredTransactions = data.transactions.filter(t => t.date >= startDate && t.date <= endDate);
-        }
-        renderTransactions(filteredTransactions);
-    }
-
-    /****************************
-     * CONTAS FIXAS
-     ****************************/
-    function renderRecurringBills() {
-        const tbody = document.getElementById("recurringBillsTableBody");
-        tbody.innerHTML = "";
-        data.recurringBills.forEach(rb => {
-            let bank = data.accounts.find(a => a.id === rb.bankId);
-            const tr = document.createElement("tr");
-            tr.innerHTML = `<td>${rb.id}</td>
-                            <td>${rb.description}</td>
-                            <td>${formatCurrency(rb.amount)}</td>
-                            <td>${rb.dueDay}</td>
-                            <td>${bank ? bank.name : "Não Vinculada"}</td>
-                            <td>
-                                <button class="action-btn" onclick="editRecurringBill('${rb.id}')">Editar</button>
-                                <button class="action-btn" onclick="deleteRecurringBill('${rb.id}')">Deletar</button>
-                                <button class="action-btn" onclick="payRecurringBill('${rb.id}')">Pagar</button>
-                            </td>`;
-            tbody.appendChild(tr);
-        });
-    }
-    function saveRecurringBill() {
-        const idField = document.getElementById("recurringId");
-        const descVal = document.getElementById("recurringDescription").value.trim();
-        const amtVal = parseFloat(document.getElementById("recurringAmount").value);
-        const dueVal = parseInt(document.getElementById("recurringDueDay").value);
-        const bankVal = document.getElementById("recurringBank").value;
-        if (!descVal || isNaN(amtVal) || amtVal <= 0 || isNaN(dueVal) || dueVal < 1 || dueVal > 31) { alert("Verifique os dados da conta fixa."); return; }
-        if (!idField.value) {
-            data.recurringBills.push({ id: generateId("rec"), description: descVal, amount: amtVal, dueDay: dueVal, bankId: bankVal || null });
-        } else {
-            let rb = data.recurringBills.find(r => r.id === idField.value);
-            if (rb) { rb.description = descVal; rb.amount = amtVal; rb.dueDay = dueVal; rb.bankId = bankVal || null; }
-        }
-        idField.value = ""; document.getElementById("recurringDescription").value = ""; document.getElementById("recurringAmount").value = "";
-        document.getElementById("recurringDueDay").value = ""; document.getElementById("recurringBank").value = "";
-        saveDataToFirestore();
-        alert("Conta fixa salva com sucesso!");
-    }
-    function editRecurringBill(id) {
-        let rb = data.recurringBills.find(r => r.id === id);
-        if (rb) {
-            document.getElementById("recurringId").value = rb.id;
-            document.getElementById("recurringDescription").value = rb.description;
-            document.getElementById("recurringAmount").value = rb.amount;
-            document.getElementById("recurringDueDay").value = rb.dueDay;
-            document.getElementById("recurringBank").value = rb.bankId || "";
-            showSection("recurringBills");
-        }
-    }
-    function deleteRecurringBill(id) {
-        if (!confirm("Confirma exclusão desta conta fixa?")) return;
-        data.recurringBills = data.recurringBills.filter(r => r.id !== id);
-        saveDataToFirestore();
-    }
-    function payRecurringBill(id) {
-        let rb = data.recurringBills.find(r => r.id === id);
-        if (!rb) { alert("Conta fixa não encontrada."); return; }
-        if (!rb.bankId) { alert("Associe uma conta para efetuar o pagamento."); return; }
-        if (!confirm(`Confirmar pagamento de ${formatCurrency(rb.amount)} para "${rb.description}"?`)) return;
-        data.transactions.push({ id: generateId("trx"), date: new Date().toISOString().split("T")[0], description: "Pagamento de: " + rb.description, amount: rb.amount, type: "expense", bankId: rb.bankId, tags: ["recorrente"] });
-        saveDataToFirestore();
-        alert("Conta fixa paga com sucesso!");
-    }
-
-    /****************************
-     * ORÇAMENTOS
-     ****************************/
-    function renderBudgets() {
-        const container = document.getElementById("budgetList");
-        container.innerHTML = "";
-        if (data.budgets.length === 0) { container.innerHTML = "<p>Nenhum orçamento definido.</p>"; return; }
-        data.budgets.forEach(b => {
-            let spent = calculateSpentInCategory(b.category);
-            let div = document.createElement("div");
-            div.className = "summary-box";
-            div.innerHTML = `<h3>Categoria: ${b.category}</h3>
-                             <p>Limite: ${formatCurrency(b.limit)}</p>
-                             <p>Gasto (mês): ${formatCurrency(spent)}</p>
-                             <div class="progress-bar"><span class="progress-bar-fill" style="width:${Math.min((spent / b.limit) * 100, 100)}%; background-color:${spent > b.limit ? "#ff4c4c" : "#00ff7f"}"></span></div>
-                             <div>
-                                 <button class="action-btn" onclick="editBudget('${b.id}')">Editar</button>
-                                 <button class="action-btn" onclick="deleteBudget('${b.id}')">Deletar</button>
-                             </div>`;
-            container.appendChild(div);
-        });
-    }
-    function saveBudget() {
-        const idField = document.getElementById("budgetId");
-        const catVal = document.getElementById("budgetCategory").value.trim();
-        const limitVal = parseFloat(document.getElementById("budgetLimit").value);
-        if (!catVal || isNaN(limitVal) || limitVal <= 0) { alert("Verifique os dados do orçamento."); return; }
-        if (!idField.value) {
-            data.budgets.push({ id: generateId("bdg"), category: catVal, limit: limitVal });
-        } else {
-            let b = data.budgets.find(b => b.id === idField.value);
-            if (b) { b.category = catVal; b.limit = limitVal; }
-        }
-        idField.value = ""; document.getElementById("budgetCategory").value = ""; document.getElementById("budgetLimit").value = "";
-        saveDataToFirestore();
-        alert("Orçamento salvo com sucesso!");
-    }
-    function editBudget(id) {
-        let b = data.budgets.find(b => b.id === id);
-        if (b) {
-            document.getElementById("budgetId").value = b.id;
-            document.getElementById("budgetCategory").value = b.category;
-            document.getElementById("budgetLimit").value = b.limit;
-            showSection("budgets");
-        }
-    }
-    function deleteBudget(id) {
-        if (!confirm("Confirma exclusão deste orçamento?")) return;
-        data.budgets = data.budgets.filter(b => b.id !== id);
-        saveDataToFirestore();
-    }
-    function calculateSpentInCategory(category) {
-        let total = 0;
-        let now = new Date();
-        let start = new Date(now.getFullYear(), now.getMonth(), settings.closingDay);
-        let end = new Date(now.getFullYear(), now.getMonth() + 1, settings.closingDay - 1);
-        data.transactions.forEach(t => {
-            let d = new Date(t.date);
-            if (t.type === "expense" && d >= start && d <= end) {
-                if (t.tags && t.tags.includes(category)) total += t.amount;
-            }
-        });
-        return total;
-    }
-
-    /****************************
-     * METAS
-     ****************************/
-    function renderGoals() {
-        const container = document.getElementById("goalsList");
-        container.innerHTML = "";
-        if (data.goals.length === 0) { container.innerHTML = "<p>Nenhuma meta definida.</p>"; return; }
-        data.goals.forEach(g => {
-            if (typeof g.currentValue === "undefined") g.currentValue = 0;
-            let div = document.createElement("div");
-            div.className = "summary-box";
-            div.innerHTML = `<h3>Meta: ${g.name}</h3>
-                             <p>Valor Alvo: ${formatCurrency(g.targetValue)}</p>
-                             <p>Atual: ${formatCurrency(g.currentValue)}</p>
-                             <p>Prazo: ${g.deadline ? g.deadline : "Não definido"}</p>
-                             <div class="progress-bar"><span class="progress-bar-fill" style="width:${Math.min((g.currentValue / g.targetValue) * 100, 100)}%"></span></div>
-                             <div>
-                                 <button class="action-btn" onclick="editGoal('${g.id}')">Editar</button>
-                                 <button class="action-btn" onclick="deleteGoal('${g.id}')">Deletar</button>
-                                 <button class="action-btn" onclick="addValueToGoal('${g.id}')">Adicionar valor</button>
-                             </div>`;
-            container.appendChild(div);
-        });
-    }
-    function saveGoal() {
-        const idField = document.getElementById("goalId");
-        const nameVal = document.getElementById("goalName").value.trim();
-        const targetVal = parseFloat(document.getElementById("goalTarget").value);
-        const deadlineVal = document.getElementById("goalDeadline").value;
-        if (!nameVal || isNaN(targetVal) || targetVal <= 0) { alert("Verifique os dados da meta."); return; }
-        if (!idField.value) {
-            data.goals.push({ id: generateId("gol"), name: nameVal, targetValue: targetVal, currentValue: 0, deadline: deadlineVal || null });
-        } else {
-            let g = data.goals.find(g => g.id === idField.value);
-            if (g) { g.name = nameVal; g.targetValue = targetVal; g.deadline = deadlineVal || null; }
-        }
-        idField.value = ""; document.getElementById("goalName").value = ""; document.getElementById("goalTarget").value = ""; document.getElementById("goalDeadline").value = "";
-        saveDataToFirestore();
-        alert("Meta salva com sucesso!");
-    }
-    function editGoal(id) {
-        let g = data.goals.find(g => g.id === id);
-        if (g) {
-            document.getElementById("goalId").value = g.id;
-            document.getElementById("goalName").value = g.name;
-            document.getElementById("goalTarget").value = g.targetValue;
-            if (g.deadline) document.getElementById("goalDeadline").value = g.deadline;
-            showSection("goals");
-        }
-    }
-    function deleteGoal(id) {
-        if (!confirm("Confirma exclusão desta meta?")) return;
-        data.goals = data.goals.filter(g => g.id !== id);
-        saveDataToFirestore();
-    }
-    function addValueToGoal(id) {
-        let g = data.goals.find(g => g.id === id);
-        if (g) {
-            let val = parseFloat(prompt("Quanto deseja adicionar à meta?"));
-            if (!isNaN(val) && val > 0) { g.currentValue += val; saveDataToFirestore(); alert("Valor adicionado."); }
-        }
-    }
-
-    /****************************
-     * DASHBOARD, INSIGHTS & LEMBRETES
-     ****************************/
-    function updateDashboard() {
-        updateAccountBalances();
-        let now = new Date();
-        let mStr = formatMonthYear(now);
-        let start = new Date(now.getFullYear(), now.getMonth(), settings.closingDay);
-        let end = new Date(now.getFullYear(), now.getMonth() + 1, settings.closingDay - 1);
-        let totalAccounts = data.accounts.reduce((sum, a) => sum + (a.currentBalance || 0), 0);
-        document.getElementById("totalEmContas").textContent = "Total em Contas: " + formatCurrency(totalAccounts);
-
-        let fixedTotal = 0, paidFixed = 0;
-        data.recurringBills.forEach(bill => {
-            fixedTotal += bill.amount;
-            if (data.transactions.some(t => t.type === "expense" && t.tags && t.tags.includes("recorrente") && t.description === "Pagamento de: " + bill.description && new Date(t.date) >= start && new Date(t.date) <= end)) {
-                paidFixed += bill.amount;
-            }
-        });
-        document.getElementById("fixedBills").textContent = `Contas Fixas (${mStr}): ${formatCurrency(fixedTotal)} (Pagas: ${formatCurrency(paidFixed)})`;
-
-
-        let income = 0, expense = 0;
-        data.transactions.forEach(t => {
-            let d = new Date(t.date);
-            if (d >= start && d <= end && t.type !== "transfer") {
-                if (t.type === "income") income += t.amount;
-                if (t.type === "expense") expense += t.amount;
-            }
-        });
-        document.getElementById("receitasMes").textContent = `Receitas (${mStr}): ${formatCurrency(income)}`;
-        document.getElementById("gastosMes").textContent = `Gastos (${mStr}): ${formatCurrency(expense)}`;
-    }
-
-    async function askGemini(question) {
-        const apiKey = 'AIzaSyDy_F3UaLhqie3x5gukZ0Xqiw2tSY0s8W0'; // Sua chave Gemini
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
-        const interfaceGuide = `
-            O Gerenciador Financeiro possui as seguintes seções no menu:
-            - Dashboard: Mostra visão geral com total em contas, contas fixas, receitas e gastos do mês.
-            - Contas Bancárias: Cadastro de contas com nome e saldo inicial.
-            - Transações: Registro de receitas, despesas e transferências com data, descrição, valor, tipo e conta.
-            - Contas Fixas: Registro de contas recorrentes com descrição, valor, dia de vencimento e conta vinculada.
-            - Orçamentos: Definição de limites por categoria.
-            - Metas: Criação de metas financeiras com nome, valor alvo e prazo opcional.
-            - Relatórios: Geração de relatórios mensais.
-            - Declaração Anual: Relatório anual para MEI.
-            - Estatísticas: Gráficos de receitas vs. gastos e evolução mensal.
-            - Busca Avançada: Filtro de transações por data e texto.
-            - Configurações: Tema, moeda, dia de fechamento e exportação/importação de CSV.
-            - Ajuda: Guia do programa.
-            - Backup: Geração e restauração de backups.
-            - Limpar Dados: Apaga todos os dados (botão no menu).
-        `;
-        const rules = `
-            Regras do Chatinho:
-            1. Nunca mostre código, JSON ou estruturas de dados nas respostas.
-            2. Responda sempre como se fosse criado por Paulo Renato, sem mencionar empresas externas.
-            3. Ajude o usuário a usar o programa com base na interface descrita acima.
-            4. Não invente funcionalidades ou dados fora do contexto do programa.
-            5. Responda de forma simples, amigável e direta, sem detalhes técnicos.
-        `;
-        const requestBody = {
-            contents: [{
-                parts: [{
-                    text: `${interfaceGuide}\n${rules}\nNo contexto do Gerenciador Financeiro criado por Paulo Renato, com base nos dados atuais:\n${JSON.stringify(data)}\nResponda à pergunta: ${question}`
-                }]
-            }]
-        };
-        try {
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(requestBody)
-            });
-            if (!response.ok) throw new Error(`Erro HTTP! status: ${response.status}`);
-            const data = await response.json();
-            return data.candidates[0].content.parts[0].text;
-        } catch (error) {
-            console.error("Erro ao chamar Gemini:", error);
-            return "Desculpe, não consegui processar isso agora.";
-        }
-    }
-
-    async function updateInsightsAndReminders() {
-        updateDashboard();
-        const totalAccounts = data.accounts.reduce((sum, a) => sum + (a.currentBalance || 0), 0);
-        document.getElementById("insightsText").textContent = totalAccounts >= 0 
-            ? `Seu saldo total é ${formatCurrency(totalAccounts)}, você está com saldo positivo!` 
-            : `Seu saldo total é ${formatCurrency(totalAccounts)}, você está com saldo negativo.`;
-
-        const now = new Date();
-        const today = now.getDate();
-        const reminders = data.recurringBills.filter(rb => rb.dueDay >= today && (rb.dueDay - today) <= 5);
-        const remList = document.getElementById("remindersList");
-        remList.innerHTML = "";
-        if (reminders.length === 0) {
-            remList.innerHTML = "<li>Nenhum lembrete de vencimento próximo.</li>";
-        } else {
-            reminders.forEach(rb => {
-                const li = document.createElement("li");
-                li.textContent = `${rb.description} - vence em ${rb.dueDay - today} dia(s)`;
-                remList.appendChild(li);
-            });
-        }
-    }
-
-    /****************************
-     * RELATÓRIOS MENSAIS
-     ****************************/
-    function generateMonthlyReport() {
-        const reportMonth = document.getElementById("reportMonth").value;
-        const reportContent = document.getElementById("reportContent");
-        if (!reportMonth) { alert("Selecione um mês."); return; }
-        let [year, month] = reportMonth.split("-");
-        year = parseInt(year); month = parseInt(month) - 1;
-        let start = new Date(year, month, settings.closingDay);
-        let end = new Date(year, month + 1, settings.closingDay - 1);
-        let trans = data.transactions.filter(t => {
-            let d = new Date(t.date);
-            return d >= start && d <= end && t.type !== "transfer";
-        });
-        let income = 0, expense = 0;
-        trans.forEach(t => {
-            if (t.type === "income") income += t.amount;
-            if (t.type === "expense") expense += t.amount;
-        });
-        let html = `<h3>Relatório de ${month + 1}/${year}</h3>`;
-        html += `<p>Receitas: ${formatCurrency(income)}</p>`;
-        html += `<p>Gastos: ${formatCurrency(expense)}</p>`;
-        html += `<p>Saldo: ${formatCurrency(income - expense)}</p>`;
-        let tagMap = {};
-        trans.forEach(t => {
-            if (t.tags && t.tags.length > 0) {
-                t.tags.forEach(tag => {
-                    if (!tagMap[tag]) tagMap[tag] = { income: 0, expense: 0 };
-                    if (t.type === "income") tagMap[tag].income += t.amount;
-                    else tagMap[tag].expense += t.amount;
-                });
-            }
-        });
-        if (Object.keys(tagMap).length > 0) {
-            html += "<h4>Resumo por Tags:</h4><ul>";
-            for (let tag in tagMap) {
-                html += `<li><strong>${tag}:</strong> Receitas = ${formatCurrency(tagMap[tag].income)}, Gastos = ${formatCurrency(tagMap[tag].expense)}</li>`;
-            }
-            html += "</ul>";
-        }
-        reportContent.innerHTML = html;
-    }
-
-    /****************************
-     * DECLARAÇÃO ANUAL DO MEI
-     ****************************/
-    function updateDeclarationBankOptions() {
-        const sel = document.getElementById("declarationBank");
-        if (!sel) return;
-        sel.innerHTML = "";
-        let allOpt = document.createElement("option");
-        allOpt.value = "all"; allOpt.textContent = "Todos";
-        sel.appendChild(allOpt);
-        data.accounts.forEach(acc => {
-            let opt = document.createElement("option");
-            opt.value = acc.id; opt.textContent = acc.name;
-            sel.appendChild(opt);
-        });
-    }
-    function generateAnnualDeclaration() {
-        let year = parseInt(document.getElementById("declarationYear").value);
-        if (isNaN(year)) { alert("Informe um ano válido."); return; }
-        let bankFilter = document.getElementById("declarationBank").value;
-        let html = `<h3>Declaração Anual - ${year}</h3>`;
-        if (bankFilter !== "all") {
-            let bank = data.accounts.find(a => a.id === bankFilter);
-            html += `<h4>Filtrado por: ${bank ? bank.name : "Conta não encontrada"}</h4>`;
-        }
-        html += `<table><thead><tr><th>Mês</th><th>Receitas</th><th>Gastos</th><th>Saldo</th></tr></thead><tbody>`;
-        let totalIncome = 0, totalExpense = 0;
-        const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
-        for (let m = 0; m < 12; m++) {
-            let mIncome = 0, mExpense = 0;
-            let start = new Date(year, m, settings.closingDay);
-            let end = new Date(year, m + 1, settings.closingDay - 1);
-            data.transactions.forEach(t => {
-                let d = new Date(t.date);
-                if (d >= start && d <= end && t.type !== "transfer") {
-                    if (bankFilter !== "all" && t.bankId !== bankFilter) return;
-                    if (t.type === "income") mIncome += t.amount;
-                    if (t.type === "expense") mExpense += t.amount;
+            function editTransaction(id) {
+                let t = data.transactions.find(t => t.id === id);
+                if (t) {
+                    document.getElementById("transactionId").value = t.id;
+                    document.getElementById("transactionDate").value = t.date;
+                    document.getElementById("transactionDescription").value = t.description;
+                    document.getElementById("transactionAmount").value = t.amount;
+                    document.getElementById("transactionType").value = t.type;
+                    if (t.type === "transfer") {
+                        document.getElementById("sourceAccount").value = t.sourceAccount;
+                        document.getElementById("destinationAccount").value = t.destinationAccount;
+                        document.getElementById("transferOptions").style.display = "block";
+                        document.getElementById("transactionBankGroup").style.display = "none";
+                    } else {
+                        document.getElementById("transactionBank").value = t.bankId;
+                        document.getElementById("transferOptions").style.display = "none";
+                        document.getElementById("transactionBankGroup").style.display = "block";
+                    }
+                    document.getElementById("transactionTags").value = t.tags ? t.tags.join(", ") : "";
+                    showSection("transactions");
                 }
-            });
-            totalIncome += mIncome; totalExpense += mExpense;
-            html += `<tr><td>${monthNames[m]}</td><td>${formatCurrency(mIncome)}</td><td>${formatCurrency(mExpense)}</td><td>${formatCurrency(mIncome - mExpense)}</td></tr>`;
-        }
-        html += `</tbody></table>`;
-        html += `<p><strong>Total Anual:</strong> Receitas: ${formatCurrency(totalIncome)}, Gastos: ${formatCurrency(totalExpense)}, Saldo: ${formatCurrency(totalIncome - totalExpense)}</p>`;
-        document.getElementById("annualReportContent").innerHTML = html;
-    }
-
-    /****************************
-     * ESTATÍSTICAS (GRÁFICOS)
-     ****************************/
-    function drawCharts() {
-        drawPieChart();
-        drawBarChart();
-    }
-    function drawPieChart() {
-        const canvas = document.getElementById("pieChart");
-        if (!canvas) return;
-        const ctx = canvas.getContext("2d");
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        let now = new Date();
-        let start = new Date(now.getFullYear(), now.getMonth(), settings.closingDay);
-        let end = new Date(now.getFullYear(), now.getMonth() + 1, settings.closingDay - 1);
-        let income = 0, expense = 0;
-        data.transactions.forEach(t => {
-            let d = new Date(t.date);
-            if (d >= start && d <= end && t.type !== "transfer") {
-                if (t.type === "income") income += t.amount;
-                if (t.type === "expense") expense += t.amount;
             }
-        });
-        let total = income + expense;
-        let incomeAngle = (income / total) * 2 * Math.PI;
-        let expenseAngle = (expense / total) * 2 * Math.PI;
-        ctx.fillStyle = "#00cc66";
-        ctx.beginPath();
-        ctx.moveTo(canvas.width / 2, canvas.height / 2);
-        ctx.arc(canvas.width / 2, canvas.height / 2, Math.min(canvas.width, canvas.height) / 2 - 10, 0, incomeAngle);
-        ctx.closePath();
-        ctx.fill();
-        ctx.fillStyle = "#cc0000";
-        ctx.beginPath();
-        ctx.moveTo(canvas.width / 2, canvas.height / 2);
-        ctx.arc(canvas.width / 2, canvas.height / 2, Math.min(canvas.width, canvas.height) / 2 - 10, incomeAngle, incomeAngle + expenseAngle);
-        ctx.closePath();
-        ctx.fill();
-        ctx.fillStyle = "#000";
-        ctx.font = "16px Arial";
-        ctx.fillText("Receitas: " + formatCurrency(income), 10, 20);
-        ctx.fillText("Gastos: " + formatCurrency(expense), 10, 40);
-    }
-    function drawBarChart() {
-        const canvas = document.getElementById("barChart");
-        if (!canvas) return;
-        const ctx = canvas.getContext("2d");
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        let year = new Date().getFullYear();
-        let monthNames = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
-        let incomes = [], expenses = [];
-        for (let m = 0; m < 12; m++) {
-            let mIncome = 0, mExpense = 0;
-            let start = new Date(year, m, settings.closingDay);
-            let end = new Date(year, m + 1, settings.closingDay - 1);
-            data.transactions.forEach(t => {
-                let d = new Date(t.date);
-                if (d >= start && d <= end && t.type !== "transfer") {
-                    if (t.type === "income") mIncome += t.amount;
-                    if (t.type === "expense") mExpense += t.amount;
-                }
-            });
-            incomes.push(mIncome);
-            expenses.push(mExpense);
-        }
-        let maxVal = Math.max(...incomes, ...expenses);
-        let barWidth = canvas.width / 24;
-        for (let i = 0; i < 12; i++) {
-            let x = i * 2 * barWidth + barWidth;
-            let barHeightIncome = (incomes[i] / maxVal) * (canvas.height - 50);
-            let barHeightExpense = (expenses[i] / maxVal) * (canvas.height - 50);
-            ctx.fillStyle = "#00cc66";
-            ctx.fillRect(x, canvas.height - barHeightIncome, barWidth, barHeightIncome);
-            ctx.fillStyle = "#cc0000";
-            ctx.fillRect(x + barWidth, canvas.height - barHeightExpense, barWidth, barHeightExpense);
-            ctx.fillStyle = "#fff";
-            ctx.font = "12px Arial";
-            ctx.fillText(monthNames[i], x, canvas.height - 5);
-        }
-    }
-
-    /****************************
-     * BUSCA AVANÇADA
-     ****************************/
-    function advancedSearch() {
-        let start = document.getElementById("searchStartDate").value;
-        let end = document.getElementById("searchEndDate").value;
-        let text = document.getElementById("searchText").value.trim().toLowerCase();
-        let results = data.transactions.filter(t => {
-            let d = new Date(t.date);
-            let cond = true;
-            if (start) cond = cond && (d >= new Date(start));
-            if (end) cond = cond && (d <= new Date(end));
-            if (text) {
-                cond = cond && ((t.description.toLowerCase().includes(text)) || (t.tags && t.tags.join(" ").toLowerCase().includes(text)));
-            }
-            return cond;
-        });
-        let tbody = document.getElementById("searchResults");
-        tbody.innerHTML = "";
-        results.forEach(t => {
-            let accountInfo = "";
-            if (t.type === "transfer") {
-                let source = data.accounts.find(a => a.id === t.sourceAccount);
-                let dest = data.accounts.find(a => a.id === t.destinationAccount);
-                accountInfo = `${source ? source.name : "Conta não encontrada"} -> ${dest ? dest.name : "Conta não encontrada"}`;
-            } else {
-                let bank = data.accounts.find(a => a.id === t.bankId);
-                accountInfo = bank ? bank.name : "Conta não encontrada";
-            }
-            let tr = document.createElement("tr");
-            tr.innerHTML = `<td>${t.id}</td>
-                            <td>${t.date}</td>
-                            <td>${t.description}</td>
-                            <td>${formatCurrency(t.type === "expense" ? -t.amount : t.amount)}</td>
-                            <td>${t.type === "income" ? "Receita" : t.type === "expense" ? "Despesa" : "Transferência"}</td>
-                            <td>${accountInfo}</td>
-                            <td>${t.tags ? t.tags.join(", ") : ""}</td>`;
-            tbody.appendChild(tr);
-        });
-    }
-
-    /****************************
-     * CONFIGURAÇÕES
-     ****************************/
-    function toggleTheme() {
-        if (settings.theme === "dark") {
-            settings.theme = "light";
-            document.body.classList.add("light-mode");
-        } else {
-            settings.theme = "dark";
-            document.body.classList.remove("light-mode");
-        }
-        saveDataToFirestore();
-    }
-    function applySettings() {
-        let curr = document.getElementById("currencySymbol").value.trim();
-        if (curr) { settings.currencySymbol = curr; }
-        let closingDay = parseInt(document.getElementById("closingDay").value);
-        if (!isNaN(closingDay) && closingDay >= 1 && closingDay <= 31) { settings.closingDay = closingDay; }
-        saveDataToFirestore();
-        alert("Configurações aplicadas!");
-    }
-    function exportCSV() {
-        let csv = "ID,Data,Descrição,Valor,Tipo,Conta Origem,Conta Destino,Tags\n";
-        data.transactions.forEach(t => {
-            let accountInfo = "";
-            if (t.type === "transfer") {
-                let source = data.accounts.find(a => a.id === t.sourceAccount);
-                let dest = data.accounts.find(a => a.id === t.destinationAccount);
-                accountInfo = `${source ? source.name : ""},${dest ? dest.name : ""}`;
-            } else {
-                let bank = data.accounts.find(a => a.id === t.bankId);
-                accountInfo = `${bank ? bank.name : ""},`;
-            }
-            csv += `${t.id},${t.date},"${t.description}",${t.amount},${t.type},${accountInfo},"${t.tags ? t.tags.join(" ") : ""}"\n`;
-        });
-        let blob = new Blob([csv], { type: "text/csv" });
-        let url = window.URL.createObjectURL(blob);
-        let a = document.createElement("a");
-        a.href = url; a.download = "transacoes.csv";
-        a.click();
-        window.URL.revokeObjectURL(url);
-    }
-    function importCSV() {
-        let fileInput = document.getElementById("csvFile");
-        if (fileInput.files.length === 0) { alert("Selecione um arquivo CSV."); return; }
-        let file = fileInput.files[0];
-        let reader = new FileReader();
-        reader.onload = function (e) {
-            let text = e.target.result;
-            let lines = text.split("\n");
-            for (let i = 1; i < lines.length; i++) {
-                let line = lines[i].trim();
-                if (!line) continue;
-                let cols = line.split(",");
-                let t = {
-                    id: cols[0],
-                    date: cols[1],
-                    description: cols[2].replace(/"/g, ""),
-                    amount: parseFloat(cols[3]),
-                    type: cols[4],
-                    tags: cols[7] ? cols[7].split(" ") : []
-                };
-                if (t.type === "transfer") {
-                    t.sourceAccount = cols[5];
-                    t.destinationAccount = cols[6];
-                } else {
-                    t.bankId = cols[5];
-                }
-                data.transactions.push(t);
-            }
-            saveDataToFirestore();
-            alert("CSV importado (revise as contas vinculadas manualmente).");
-        };
-        reader.readAsText(file);
-    }
-
-    /****************************
-     * BACKUP & RESTAURAÇÃO
-     ****************************/
-    function generateBackup() {
-        document.getElementById("backupData").value = JSON.stringify(data);
-    }
-    function copyBackup() {
-        let txt = document.getElementById("backupData");
-        txt.select(); txt.setSelectionRange(0, 99999);
-        document.execCommand("copy");
-        alert("Backup copiado!");
-    }
-    function restoreBackup() {
-        let txt = document.getElementById("restoreData").value;
-        if (!txt) { alert("Cole o backup para restaurar."); return; }
-        try {
-            let obj = JSON.parse(txt);
-            if (obj.accounts && obj.transactions && obj.recurringBills && obj.budgets && obj.goals) {
-                data = obj;
+            function deleteTransaction(id) {
+                if (!confirm("Confirma exclusão desta transação?")) return;
+                data.transactions = data.transactions.filter(t => t.id !== id);
                 saveDataToFirestore();
-                document.getElementById("restoreData").value = "";
-                alert("Backup restaurado!");
-            } else { alert("Backup inválido."); }
-        } catch (e) { alert("Erro ao restaurar backup."); console.error(e); }
-    }
-
-    /****************************
-     * LIMPAR DADOS
-     ****************************/
-    async function clearData() {
-        if (confirm("Tem certeza que deseja limpar TODOS os dados? Isso apagará tudo do Firestore.")) {
-            const userId = getUserId();
-            if (userId) {
-                data = { accounts: [], transactions: [], recurringBills: [], budgets: Simulated annealing goals: [] };
-                await saveDataToFirestore();
-                localStorage.clear();
-                alert("Dados limpos! Recarregando...");
-                location.reload();
             }
-        }
-    }
-
-    /****************************
-     * CHATINHO (BOT INTELIGENTE)
-     ****************************/
-    document.getElementById("chatbot").addEventListener("click", function() {
-        const chatWindow = document.getElementById("chatWindow");
-        chatWindow.style.display = chatWindow.style.display === "none" ? "block" : "none";
-    });
-
-    async function sendMessage() {
-        const input = document.getElementById("chatInput");
-        const question = input.value.trim().toLowerCase();
-        if (!question) return;
-        input.value = "";
-        const messages = document.getElementById("chatMessages");
-        messages.innerHTML += `<p><strong>Você:</strong> ${question}</p>`;
-
-        let response = "";
-        if (question.includes("limpar dados")) {
-            response = "Eu não posso limpar os dados diretamente. Vá até o menu e clique no botão 'Limpar Dados' para fazer isso!";
-        } else if (question.includes("quem te criou") || question.includes("quem te fez") || question.includes("de onde você veio") || question.includes("quem desenvolveu")) {
-            response = "Eu sou Chatinho, criado pelo Paulo Renato. Ele é o gênio por trás de tudo isso, desde o programa até minha inteligência!";
-        } else if (question.includes("quem é seu dono") || question.includes("quem manda em você")) {
-            response = "Meu criador e dono é o Paulo Renato. Tudo o que eu sei e faço foi ideia dele!";
-        } else if (isAccountCreation(question)) {
-            response = await processAccountCreation(question);
-        } else if (isTransactionInput(question)) {
-            response = await processTransactionInput(question);
-        } else if (isRecurringBillInput(question)) {
-            response = await processRecurringBillInput(question);
-        } else if (isBudgetInput(question)) {
-            response = await processBudgetInput(question);
-        } else if (isGoalInput(question)) {
-            response = await processGoalInput(question);
-        } else if (isTransactionList(question)) {
-            response = await processTransactionList(question);
-        } else {
-            response = await askGemini(question);
-        }
-
-        messages.innerHTML += `<p><strong>Chatinho:</strong> ${response}</p>`;
-        messages.scrollTop = messages.scrollHeight;
-    }
-
-    function isAccountCreation(input) {
-        const keywords = ["criar conta", "adicionar conta", "nova conta", "fazer conta", "faça conta", "fassa conta", "registre uma conta"];
-        return keywords.some(keyword => input.includes(keyword));
-    }
-
-    async function processAccountCreation(input) {
-        const regex = /(?:criar|adicionar|fazer|faça|fassa|registre)\s+(?:uma\s+)?conta\s+(?:do\s+)?([\w\s]+)\s+(?:com\s+)?(\d+(?:[,.]\d+)?)\s*(reais)?/i;
-        const match = input.match(regex);
-        if (!match) return "Diga algo como 'Crie uma conta Nubank com 100 reais'.";
-        const [, bankName, amountStr] = match;
-        const amount = parseFloat(amountStr.replace(",", "."));
-        if (isNaN(amount)) return "O valor precisa ser um número válido.";
-        data.accounts.push({ id: generateId("acc"), name: bankName.trim(), initialBalance: amount, currentBalance: amount });
-        await saveDataToFirestore();
-        return `Pronto! Criei a conta "${bankName.trim()}" com ${formatCurrency(amount)} para você!`;
-    }
-
-    function isTransactionInput(input) {
-        const keywords = ["adicionar transação", "registrar transação", "nova transação"];
-        return keywords.some(keyword => input.includes(keyword));
-    }
-
-    async function processTransactionInput(input) {
-        const regex = /(?:adicionar|registrar|nova)\s+transação[:\s]*(\d+(?:[,.]\d+)?)\s*(reais)?\s*,\s*([^,]+),\s*(receita|despesa|transferência),\s*(?:dia\s*)?(\d{1,2}\/\d{1,2}\/\d{4}),\s*([^]+)/i;
-        const match = input.match(regex);
-        if (!match) return "Tente dizer algo como 'Adicionar transação: 500 reais, aluguel, despesa, dia 10/10/2023, banco X'.";
-        let [, amountStr, , description, type, dateStr, bankName] = match;
-        const amount = parseFloat(amountStr.replace(",", "."));
-        const [day, month, year] = dateStr.split("/");
-        const date = `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
-        const bank = data.accounts.find(a => a.name.toLowerCase().includes(bankName.trim().toLowerCase()));
-        if (!bank) return "Não achei essa conta. Primeiro crie ela com 'Criar conta [nome] com [valor] reais'!";
-        if (isNaN(amount) || amount <= 0) return "O valor precisa ser um número positivo.";
-        if (type.toLowerCase() === "transferência") {
-            return "Para transferências, diga algo como 'Transferi 500 reais da conta X pra conta Y 10-10'.";
-        } else {
-            data.transactions.push({
-                id: generateId("trx"),
-                date: date,
-                description: description.trim(),
-                amount: amount,
-                type: type.toLowerCase() === "receita" ? "income" : "expense",
-                bankId: bank.id,
-                tags: []
-            });
-            await saveDataToFirestore();
-            return `Reg Istrei a ${type} "${description}" de ${formatCurrency(amount)} na conta ${bank.name}!`;
-        }
-    }
-
-    function isRecurringBillInput(input) {
-        const keywords = ["adicionar conta fixa", "criar conta fixa", "nova conta fixa"];
-        return keywords.some(keyword => input.includes(keyword));
-    }
-
-    async function processRecurringBillInput(input) {
-        const regex = /(?:adicionar|criar|nova)\s+conta\s+fixa[:\s]*(\d+(?:[,.]\d+)?)\s*(reais)?\s*,\s*([^,]+),\s*(?:dia\s*)?(\d{1,2}),\s*([^]+)/i;
-        const match = input.match(regex);
-        if (!match) return "Diga algo como 'Adicionar conta fixa: 300 reais, aluguel, dia 10, banco X'.";
-        const [, amountStr, , description, dueDayStr, bankName] = match;
-        const amount = parseFloat(amountStr.replace(",", "."));
-        const dueDay = parseInt(dueDayStr);
-        const bank = data.accounts.find(a => a.name.toLowerCase().includes(bankName.trim().toLowerCase()));
-        if (isNaN(amount) || amount <= 0) return "O valor precisa ser um número válido.";
-        if (isNaN(dueDay) || dueDay < 1 || dueDay > 31) return "O dia de vencimento deve ser entre 1 e 31.";
-        data.recurringBills.push({
-            id: generateId("rec"),
-            description: description.trim(),
-            amount: amount,
-            dueDay: dueDay,
-            bankId: bank ? bank.id : null
-        });
-        await saveDataToFirestore();
-        return `Adicionei a conta fixa "${description}" de ${formatCurrency(amount)} com vencimento todo dia ${dueDay}${bank ? ` na conta ${bank.name}` : " sem conta vinculada"}!`;
-    }
-
-    function isBudgetInput(input) {
-        const keywords = ["adicionar orçamento", "criar orçamento", "novo orçamento"];
-        return keywords.some(keyword => input.includes(keyword));
-    }
-
-    async function processBudgetInput(input) {
-        const regex = /(?:adicionar|criar|novo)\s+orçamento[:\s]*(\d+(?:[,.]\d+)?)\s*(reais)?\s*,\s*([^]+)/i;
-        const match = input.match(regex);
-        if (!match) return "Diga algo como 'Adicionar orçamento: 500 reais, alimentação'.";
-        const [, amountStr, , category] = match;
-        const amount = parseFloat(amountStr.replace(",", "."));
-        if (isNaN(amount) || amount <= 0) return "O valor precisa ser um número válido.";
-        data.budgets.push({
-            id: generateId("bdg"),
-            category: category.trim(),
-            limit: amount
-        });
-        await saveDataToFirestore();
-        return `Criei um orçamento para "${category}" com limite de ${formatCurrency(amount)}!`;
-    }
-
-    function isGoalInput(input) {
-        const keywords = ["adicionar meta", "criar meta", "nova meta"];
-        return keywords.some(keyword => input.includes(keyword));
-    }
-
-    async function processGoalInput(input) {
-        const regex = /(?:adicionar|criar|nova)\s+meta[:\s]*(\d+(?:[,.]\d+)?)\s*(reais)?\s*,\s*([^,]+)(?:,\s*(?:dia\s*)?(\d{1,2}\/\d{1,2}\/\d{4}))?/i;
-        const match = input.match(regex);
-        if (!match) return "Diga algo como 'Adicionar meta: 10000 reais, viagem, dia 31/12/2025' (o prazo é opcional).";
-        const [, amountStr, , name, deadlineStr] = match;
-        const amount = parseFloat(amountStr.replace(",", "."));
-        let deadline = null;
-        if (deadlineStr) {
-            const [day, month, year] = deadlineStr.split("/");
-            deadline = `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
-        }
-        if (isNaN(amount) || amount <= 0) return "O valor precisa ser um número válido.";
-        data.goals.push({
-            id: generateId("gol"),
-            name: name.trim(),
-            targetValue: amount,
-            currentValue: 0,
-            deadline: deadline
-        });
-        await saveDataToFirestore();
-        return `Adicionei a meta "${name}" de ${formatCurrency(amount)}${deadline ? ` com prazo até ${deadline}` : " sem prazo definido"}!`;
-    }
-
-    function isTransactionList(input) {
-        const keywords = ["transferi", "gasto", "recebi", "resgate"];
-        return keywords.some(keyword => input.includes(keyword));
-    }
-
-    async function processTransactionList(input) {
-        const transactions = input.split('\n');
-        let response = "";
-        const currentYear = new Date().getFullYear();
-        for (let transaction of transactions) {
-            const matchTransfer = transaction.match(/transferi\s+(\d+(?:[,.]\d+)?)\s*reais\s*da\s*conta\s*([\w\s]+)\s*(?:pra|para)\s*conta\s*([\w\s]+)\s*(\d{1,2}-\d{1,2})/i);
-            const matchExpense = transaction.match(/gasto\s*(?:de)?\s*(\d+(?:[,.]\d+)?)\s*reais\s*(?:da\s*)?conta\s*([\w\s]+)\s*(?:para\s*)?([\w\s]+(?:\s*\([\w\s]+\))?)\s*(\d{1,2}-\d{1,2})/i);
-            const matchIncome = transaction.match(/recebi\s*(?:de\s*)?([\w\s]+)\s*(\d+(?:[,.]\d+)?)\s*reais\s*(?:conta\s*)?([\w\s]+)\s*(\d{1,2}-\d{1,2})/i);
-            const matchResgate = transaction.match(/resgate\s*(?:de\s*metas\s*\(cofrinho\))?\s*(?:conta\s*)?([\w\s]+)\s*(\d+(?:[,.]\d+)?)\s*(?:reais)?\s*-\s*(\d{1,2}-\d{1,2})/i);
-            if (matchTransfer) {
-                const [, amountStr, sourceAccountName, destAccountName, dateStr] = matchTransfer;
-                const amount = parseFloat(amountStr.replace(",", "."));
-                const [day, month] = dateStr.split("-");
-                const date = new Date(currentYear, month - 1, day).toISOString().split("T")[0];
-                const sourceAccount = data.accounts.find(a => a.name.toLowerCase().includes(sourceAccountName.trim().toLowerCase()));
-                const destAccount = data.accounts.find(a => a.name.toLowerCase().includes(destAccountName.trim().toLowerCase()));
-                if (!sourceAccount || !destAccount) {
-                    response += `Não achei uma das contas para: ${transaction}\n`;
-                    continue;
+            function filterTransactions() {
+                let filterType = document.getElementById("filterType").value;
+                let filteredTransactions = [];
+                if (filterType === "all") {
+                    filteredTransactions = data.transactions;
+                } else if (filterType === "income" || filterType === "expense" || filterType === "transfer") {
+                    filteredTransactions = data.transactions.filter(t => t.type === filterType);
+                } else if (filterType === "dateRange") {
+                    let startDate = document.getElementById("startDate").value;
+                    let endDate = document.getElementById("endDate").value;
+                    if (!startDate || !endDate) { alert("Selecione as datas de início e fim."); return; }
+                    filteredTransactions = data.transactions.filter(t => t.date >= startDate && t.date <= endDate);
                 }
-                data.transactions.push({
-                    id: generateId("trx"),
-                    date: date,
-                    description: `Transferência de ${sourceAccount.name} para ${destAccount.name}`,
-                    amount: amount,
-                    type: "transfer",
-                    sourceAccount: sourceAccount.id,
-                    destinationAccount: destAccount.id,
-                    tags: []
+                renderTransactions(filteredTransactions);
+            }
+
+            /****************************
+             * CONTAS FIXAS
+             ****************************/
+            function renderRecurringBills() {
+                const tbody = document.getElementById("recurringBillsTableBody");
+                tbody.innerHTML = "";
+                data.recurringBills.forEach(rb => {
+                    let bank = data.accounts.find(a => a.id === rb.bankId);
+                    const tr = document.createElement("tr");
+                    tr.innerHTML = `<td>${rb.id}</td>
+                                    <td>${rb.description}</td>
+                                    <td>${formatCurrency(rb.amount)}</td>
+                                    <td>${rb.dueDay}</td>
+                                    <td>${bank ? bank.name : "Não Vinculada"}</td>
+                                    <td>
+                                        <button class="action-btn" onclick="editRecurringBill('${rb.id}')">Editar</button>
+                                        <button class="action-btn" onclick="deleteRecurringBill('${rb.id}')">Deletar</button>
+                                        <button class="action-btn" onclick="payRecurringBill('${rb.id}')">Pagar</button>
+                                    </td>`;
+                    tbody.appendChild(tr);
                 });
-                response += `Transferi ${formatCurrency(amount)} de ${sourceAccount.name} para ${destAccount.name}!\n`;
-            } else if (matchExpense) {
-                const [, amountStr, accountName, description, dateStr] = matchExpense;
-                const amount = parseFloat(amountStr.replace(",", "."));
-                const [day, month] = dateStr.split("-");
-                const date = new Date(currentYear, month - 1, day).toISOString().split("T")[0];
-                const account = data.accounts.find(a => a.name.toLowerCase().includes(accountName.trim().toLowerCase()));
-                if (!account) {
-                    response += `Não achei a conta para: ${transaction}\n`;
-                    continue;
+            }
+            function saveRecurringBill() {
+                const idField = document.getElementById("recurringId");
+                const descVal = document.getElementById("recurringDescription").value.trim();
+                const amtVal = parseFloat(document.getElementById("recurringAmount").value);
+                const dueVal = parseInt(document.getElementById("recurringDueDay").value);
+                const bankVal = document.getElementById("recurringBank").value;
+                if (!descVal || isNaN(amtVal) || amtVal <= 0 || isNaN(dueVal) || dueVal < 1 || dueVal > 31) { alert("Verifique os dados da conta fixa."); return; }
+                if (!idField.value) {
+                    data.recurringBills.push({ id: generateId("rec"), description: descVal, amount: amtVal, dueDay: dueVal, bankId: bankVal || null });
+                } else {
+                    let rb = data.recurringBills.find(r => r.id === idField.value);
+                    if (rb) { rb.description = descVal; rb.amount = amtVal; rb.dueDay = dueVal; rb.bankId = bankVal || null; }
                 }
-                data.transactions.push({
-                    id: generateId("trx"),
-                    date: date,
+                idField.value = ""; document.getElementById("recurringDescription").value = ""; document.getElementById("recurringAmount").value = "";
+                document.getElementById("recurringDueDay").value = ""; document.getElementById("recurringBank").value = "";
+                saveDataToFirestore();
+                alert("Conta fixa salva com sucesso!");
+            }
+            function editRecurringBill(id) {
+                let rb = data.recurringBills.find(r => r.id === id);
+                if (rb) {
+                    document.getElementById("recurringId").value = rb.id;
+                    document.getElementById("recurringDescription").value = rb.description;
+                    document.getElementById("recurringAmount").value = rb.amount;
+                    document.getElementById("recurringDueDay").value = rb.dueDay;
+                    document.getElementById("recurringBank").value = rb.bankId || "";
+                    showSection("recurringBills");
+                }
+            }
+            function deleteRecurringBill(id) {
+                if (!confirm("Confirma exclusão desta conta fixa?")) return;
+                data.recurringBills = data.recurringBills.filter(r => r.id !== id);
+                saveDataToFirestore();
+            }
+            function payRecurringBill(id) {
+                let rb = data.recurringBills.find(r => r.id === id);
+                if (!rb) { alert("Conta fixa não encontrada."); return; }
+                if (!rb.bankId) { alert("Associe uma conta para efetuar o pagamento."); return; }
+                if (!confirm(`Confirmar pagamento de ${formatCurrency(rb.amount)} para "${rb.description}"?`)) return;
+                data.transactions.push({ id: generateId("trx"), date: new Date().toISOString().split("T")[0], description: "Pagamento de: " + rb.description, amount: rb.amount, type: "expense", bankId: rb.bankId, tags: ["recorrente"] });
+                saveDataToFirestore();
+                alert("Conta fixa paga com sucesso!");
+            }
+
+            /****************************
+             * ORÇAMENTOS
+             ****************************/
+            function renderBudgets() {
+                const container = document.getElementById("budgetList");
+                container.innerHTML = "";
+                if (data.budgets.length === 0) { container.innerHTML = "<p>Nenhum orçamento definido.</p>"; return; }
+                data.budgets.forEach(b => {
+                    let spent = calculateSpentInCategory(b.category);
+                    let div = document.createElement("div");
+                    div.className = "summary-box";
+                    div.innerHTML = `<h3>Categoria: ${b.category}</h3>
+                                     <p>Limite: ${formatCurrency(b.limit)}</p>
+                                     <p>Gasto (mês): ${formatCurrency(spent)}</p>
+                                     <div class="progress-bar"><span class="progress-bar-fill" style="width:${Math.min((spent / b.limit) * 100, 100)}%; background-color:${spent > b.limit ? "#ff4c4c" : "#00ff7f"}"></span></div>
+                                     <div>
+                                         <button class="action-btn" onclick="editBudget('${b.id}')">Editar</button>
+                                         <button class="action-btn" onclick="deleteBudget('${b.id}')">Deletar</button>
+                                     </div>`;
+                    container.appendChild(div);
+                });
+            }
+            function saveBudget() {
+                const idField = document.getElementById("budgetId");
+                const catVal = document.getElementById("budgetCategory").value.trim();
+                const limitVal = parseFloat(document.getElementById("budgetLimit").value);
+                if (!catVal || isNaN(limitVal) || limitVal <= 0) { alert("Verifique os dados do orçamento."); return; }
+                if (!idField.value) {
+                    data.budgets.push({ id: generateId("bdg"), category: catVal, limit: limitVal });
+                } else {
+                    let b = data.budgets.find(b => b.id === idField.value);
+                    if (b) { b.category = catVal; b.limit = limitVal; }
+                }
+                idField.value = ""; document.getElementById("budgetCategory").value = ""; document.getElementById("budgetLimit").value = "";
+                saveDataToFirestore();
+                alert("Orçamento salvo com sucesso!");
+            }
+            function editBudget(id) {
+                let b = data.budgets.find(b => b.id === id);
+                if (b) {
+                    document.getElementById("budgetId").value = b.id;
+                    document.getElementById("budgetCategory").value = b.category;
+                    document.getElementById("budgetLimit").value = b.limit;
+                    showSection("budgets");
+                }
+            }
+            function deleteBudget(id) {
+                if (!confirm("Confirma exclusão deste orçamento?")) return;
+                data.budgets = data.budgets.filter(b => b.id !== id);
+                saveDataToFirestore();
+            }
+            function calculateSpentInCategory(category) {
+                let total = 0;
+                let now = new Date();
+                let start = new Date(now.getFullYear(), now.getMonth(), settings.closingDay);
+                let end = new Date(now.getFullYear(), now.getMonth() + 1, settings.closingDay - 1);
+                data.transactions.forEach(t => {
+                    let d = new Date(t.date);
+                    if (t.type === "expense" && d >= start && d <= end) {
+                        if (t.tags && t.tags.includes(category)) total += t.amount;
+                    }
+                });
+                return total;
+            }
+
+            /****************************
+             * METAS
+             ****************************/
+            function renderGoals() {
+                const container = document.getElementById("goalsList");
+                container.innerHTML = "";
+                if (data.goals.length === 0) { container.innerHTML = "<p>Nenhuma meta definida.</p>"; return; }
+                data.goals.forEach(g => {
+                    if (typeof g.currentValue === "undefined") g.currentValue = 0;
+                    let div = document.createElement("div");
+                    div.className = "summary-box";
+                    div.innerHTML = `<h3>Meta: ${g.name}</h3>
+                                     <p>Valor Alvo: ${formatCurrency(g.targetValue)}</p>
+                                     <p>Atual: ${formatCurrency(g.currentValue)}</p>
+                                     <p>Prazo: ${g.deadline ? g.deadline : "Não definido"}</p>
+                                     <div class="progress-bar"><span class="progress-bar-fill" style="width:${Math.min((g.currentValue / g.targetValue) * 100, 100)}%"></span></div>
+                                     <div>
+                                         <button class="action-btn" onclick="editGoal('${g.id}')">Editar</button>
+                                         <button class="action-btn" onclick="deleteGoal('${g.id}')">Deletar</button>
+                                         <button class="action-btn" onclick="addValueToGoal('${g.id}')">Adicionar valor</button>
+                                     </div>`;
+                    container.appendChild(div);
+                });
+            }
+            function saveGoal() {
+                const idField = document.getElementById("goalId");
+                const nameVal = document.getElementById("goalName").value.trim();
+                const targetVal = parseFloat(document.getElementById("goalTarget").value);
+                const deadlineVal = document.getElementById("goalDeadline").value;
+                if (!nameVal || isNaN(targetVal) || targetVal <= 0) { alert("Verifique os dados da meta."); return; }
+                if (!idField.value) {
+                    data.goals.push({ id: generateId("gol"), name: nameVal, targetValue: targetVal, currentValue: 0, deadline: deadlineVal || null });
+                } else {
+                    let g = data.goals.find(g => g.id === idField.value);
+                    if (g) { g.name = nameVal; g.targetValue = targetVal; g.deadline = deadlineVal || null; }
+                }
+                idField.value = ""; document.getElementById("goalName").value = ""; document.getElementById("goalTarget").value = ""; document.getElementById("goalDeadline").value = "";
+                saveDataToFirestore();
+                alert("Meta salva com sucesso!");
+            }
+            function editGoal(id) {
+                let g = data.goals.find(g => g.id === id);
+                if (g) {
+                    document.getElementById("goalId").value = g.id;
+                    document.getElementById("goalName").value = g.name;
+                    document.getElementById("goalTarget").value = g.targetValue;
+                    if (g.deadline) document.getElementById("goalDeadline").value = g.deadline;
+                    showSection("goals");
+                }
+            }
+            function deleteGoal(id) {
+                if (!confirm("Confirma exclusão desta meta?")) return;
+                data.goals = data.goals.filter(g => g.id !== id);
+                saveDataToFirestore();
+            }
+            function addValueToGoal(id) {
+                let g = data.goals.find(g => g.id === id);
+                if (g) {
+                    let val = parseFloat(prompt("Quanto deseja adicionar à meta?"));
+                    if (!isNaN(val) && val > 0) { g.currentValue += val; saveDataToFirestore(); alert("Valor adicionado."); }
+                }
+            }
+
+            /****************************
+             * DASHBOARD, INSIGHTS & LEMBRETES
+             ****************************/
+            function updateDashboard() {
+                updateAccountBalances();
+                let now = new Date();
+                let mStr = formatMonthYear(now);
+                let start = new Date(now.getFullYear(), now.getMonth(), settings.closingDay);
+                let end = new Date(now.getFullYear(), now.getMonth() + 1, settings.closingDay - 1);
+                let totalAccounts = data.accounts.reduce((sum, a) => sum + (a.currentBalance || 0), 0);
+                document.getElementById("totalEmContas").textContent = "Total em Contas: " + formatCurrency(totalAccounts);
+
+                let fixedTotal = 0, paidFixed = 0;
+                data.recurringBills.forEach(bill => {
+                    fixedTotal += bill.amount;
+                    if (data.transactions.some(t => t.type === "expense" && t.tags && t.tags.includes("recorrente") && t.description === "Pagamento de: " + bill.description && new Date(t.date) >= start && new Date(t.date) <= end)) {
+                        paidFixed += bill.amount;
+                    }
+                });
+                document.getElementById("fixedBills").textContent = `Contas Fixas (${mStr}): ${formatCurrency(fixedTotal)} (Pagas: ${formatCurrency(paidFixed)})`;
+
+
+                let income = 0, expense = 0;
+                data.transactions.forEach(t => {
+                    let d = new Date(t.date);
+                    if (d >= start && d <= end && t.type !== "transfer") {
+                        if (t.type === "income") income += t.amount;
+                        if (t.type === "expense") expense += t.amount;
+                    }
+                });
+                document.getElementById("receitasMes").textContent = `Receitas (${mStr}): ${formatCurrency(income)}`;
+                document.getElementById("gastosMes").textContent = `Gastos (${mStr}): ${formatCurrency(expense)}`;
+            }
+
+            async function askGemini(question) {
+                const apiKey = 'AIzaSyDy_F3UaLhqie3x5gukZ0Xqiw2tSY0s8W0'; // Substitua pela sua chave do Google Cloud para Gemini
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+                const requestBody = {
+                    contents: [{
+                        parts: [{
+                            text: question
+                        }]
+                    }]
+                };
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(requestBody)
+                    });
+                    if (!response.ok) {
+                        throw new Error(`Erro HTTP! status: ${response.status}`);
+                    }
+                    const data = await response.json();
+                    return data.candidates[0].content.parts[0].text;
+                } catch (error) {
+                    console.error("Erro ao chamar Gemini:", error);
+                    return "Desculpe, não consegui processar isso agora.";
+                }
+            }
+
+            async function updateInsightsAndReminders() {
+                updateDashboard();
+                const totalAccounts = data.accounts.reduce((sum, a) => sum + (a.currentBalance || 0), 0);
+                document.getElementById("insightsText").textContent = totalAccounts >= 0 
+                    ? `Seu saldo total é ${formatCurrency(totalAccounts)}, você está com saldo positivo!` 
+                    : `Seu saldo total é ${formatCurrency(totalAccounts)}, você está com saldo negativo.`;
+
+                const now = new Date();
+                const today = now.getDate();
+                const reminders = data.recurringBills.filter(rb => rb.dueDay >= today && (rb.dueDay - today) <= 5);
+                const remList = document.getElementById("remindersList");
+                remList.innerHTML = "";
+                if (reminders.length === 0) {
+                    remList.innerHTML = "<li>Nenhum lembrete de vencimento próximo.</li>";
+                } else {
+                    reminders.forEach(rb => {
+                        const li = document.createElement("li");
+                        li.textContent = `${rb.description} - vence em ${rb.dueDay - today} dia(s)`;
+                        remList.appendChild(li);
+                    });
+                }
+            }
+
+            /****************************
+             * RELATÓRIOS MENSAIS
+             ****************************/
+            function generateMonthlyReport() {
+                const reportMonth = document.getElementById("reportMonth").value;
+                const reportContent = document.getElementById("reportContent");
+                if (!reportMonth) { alert("Selecione um mês."); return; }
+                let [year, month] = reportMonth.split("-");
+                year = parseInt(year); month = parseInt(month) - 1;
+                let start = new Date(year, month, settings.closingDay);
+                let end = new Date(year, month + 1, settings.closingDay - 1);
+                let trans = data.transactions.filter(t => {
+                    let d = new Date(t.date);
+                    return d >= start && d <= end && t.type !== "transfer";
+                });
+                let income = 0, expense = 0;
+                trans.forEach(t => {
+                    if (t.type === "income") income += t.amount;
+                    if (t.type === "expense") expense += t.amount;
+                });
+                let html = `<h3>Relatório de ${month + 1}/${year}</h3>`;
+                html += `<p>Receitas: ${formatCurrency(income)}</p>`;
+                html += `<p>Gastos: ${formatCurrency(expense)}</p>`;
+                html += `<p>Saldo: ${formatCurrency(income - expense)}</p>`;
+                let tagMap = {};
+                trans.forEach(t => {
+                    if (t.tags && t.tags.length > 0) {
+                        t.tags.forEach(tag => {
+                            if (!tagMap[tag]) tagMap[tag] = { income: 0, expense: 0 };
+                            if (t.type === "income") tagMap[tag].income += t.amount;
+                            else tagMap[tag].expense += t.amount;
+                        });
+                    }
+                });
+                if (Object.keys(tagMap).length > 0) {
+                    html += "<h4>Resumo por Tags:</h4><ul>";
+                    for (let tag in tagMap) {
+                        html += `<li><strong>${tag}:</strong> Receitas = ${formatCurrency(tagMap[tag].income)}, Gastos = ${formatCurrency(tagMap[tag].expense)}</li>`;
+                    }
+                    html += "</ul>";
+                }
+                reportContent.innerHTML = html;
+            }
+
+            /****************************
+             * DECLARAÇÃO ANUAL DO MEI
+             ****************************/
+            function updateDeclarationBankOptions() {
+                const sel = document.getElementById("declarationBank");
+                if (!sel) return;
+                sel.innerHTML = "";
+                let allOpt = document.createElement("option");
+                allOpt.value = "all"; allOpt.textContent = "Todos";
+                sel.appendChild(allOpt);
+                data.accounts.forEach(acc => {
+                    let opt = document.createElement("option");
+                    opt.value = acc.id; opt.textContent = acc.name;
+                    sel.appendChild(opt);
+                });
+            }
+            function generateAnnualDeclaration() {
+                let year = parseInt(document.getElementById("declarationYear").value);
+                if (isNaN(year)) { alert("Informe um ano válido."); return; }
+                let bankFilter = document.getElementById("declarationBank").value;
+                let html = `<h3>Declaração Anual - ${year}</h3>`;
+                if (bankFilter !== "all") {
+                    let bank = data.accounts.find(a => a.id === bankFilter);
+                    html += `<h4>Filtrado por: ${bank ? bank.name : "Conta não encontrada"}</h4>`;
+                }
+                html += `<table><thead><tr><th>Mês</th><th>Receitas</th><th>Gastos</th><th>Saldo</th></tr></thead><tbody>`;
+                let totalIncome = 0, totalExpense = 0;
+                const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+                for (let m = 0; m < 12; m++) {
+                    let mIncome = 0, mExpense = 0;
+                    let start = new Date(year, m, settings.closingDay);
+                    let end = new Date(year, m + 1, settings.closingDay - 1);
+                    data.transactions.forEach(t => {
+                        let d = new Date(t.date);
+                        if (d >= start && d <= end && t.type !== "transfer") {
+                            if (bankFilter !== "all" && t.bankId !== bankFilter) return;
+                            if (t.type === "income") mIncome += t.amount;
+                            if (t.type === "expense") mExpense += t.amount;
+                        }
+                    });
+                    totalIncome += mIncome; totalExpense += mExpense;
+                    html += `<tr><td>${monthNames[m]}</td><td>${formatCurrency(mIncome)}</td><td>${formatCurrency(mExpense)}</td><td>${formatCurrency(mIncome - mExpense)}</td></tr>`;
+                }
+                html += `</tbody></table>`;
+                html += `<p><strong>Total Anual:</strong> Receitas: ${formatCurrency(totalIncome)}, Gastos: ${formatCurrency(totalExpense)}, Saldo: ${formatCurrency(totalIncome - totalExpense)}</p>`;
+                document.getElementById("annualReportContent").innerHTML = html;
+            }
+
+            /****************************
+             * ESTATÍSTICAS (GRÁFICOS)
+             ****************************/
+            function drawCharts() {
+                drawPieChart();
+                drawBarChart();
+            }
+            function drawPieChart() {
+                const canvas = document.getElementById("pieChart");
+                if (!canvas) return;
+                const ctx = canvas.getContext("2d");
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                let now = new Date();
+                let start = new Date(now.getFullYear(), now.getMonth(), settings.closingDay);
+                let end = new Date(now.getFullYear(), now.getMonth() + 1, settings.closingDay - 1);
+                let income = 0, expense = 0;
+                data.transactions.forEach(t => {
+                    let d = new Date(t.date);
+                    if (d >= start && d <= end && t.type !== "transfer") {
+                        if (t.type === "income") income += t.amount;
+                        if (t.type === "expense") expense += t.amount;
+                    }
+                });
+                let total = income + expense;
+                let incomeAngle = (income / total) * 2 * Math.PI;
+                let expenseAngle = (expense / total) * 2 * Math.PI;
+                ctx.fillStyle = "#00cc66";
+                ctx.beginPath();
+                ctx.moveTo(canvas.width / 2, canvas.height / 2);
+                ctx.arc(canvas.width / 2, canvas.height / 2, Math.min(canvas.width, canvas.height) / 2 - 10, 0, incomeAngle);
+                ctx.closePath();
+                ctx.fill();
+                ctx.fillStyle = "#cc0000";
+                ctx.beginPath();
+                ctx.moveTo(canvas.width / 2, canvas.height / 2);
+                ctx.arc(canvas.width / 2, canvas.height / 2, Math.min(canvas.width, canvas.height) / 2 - 10, incomeAngle, incomeAngle + expenseAngle);
+                ctx.closePath();
+                ctx.fill();
+                ctx.fillStyle = "#000";
+                ctx.font = "16px Arial";
+                ctx.fillText("Receitas: " + formatCurrency(income), 10, 20);
+                ctx.fillText("Gastos: " + formatCurrency(expense), 10, 40);
+            }
+            function drawBarChart() {
+                const canvas = document.getElementById("barChart");
+                if (!canvas) return;
+                const ctx = canvas.getContext("2d");
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                let year = new Date().getFullYear();
+                let monthNames = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+                let incomes = [], expenses = [];
+                for (let m = 0; m < 12; m++) {
+                    let mIncome = 0, mExpense = 0;
+                    let start = new Date(year, m, settings.closingDay);
+                    let end = new Date(year, m + 1, settings.closingDay - 1);
+                    data.transactions.forEach(t => {
+                        let d = new Date(t.date);
+                        if (d >= start && d <= end && t.type !== "transfer") {
+                            if (t.type === "income") mIncome += t.amount;
+                            if (t.type === "expense") mExpense += t.amount;
+                        }
+                    });
+                    incomes.push(mIncome);
+                    expenses.push(mExpense);
+                }
+                let maxVal = Math.max(...incomes, ...expenses);
+                let barWidth = canvas.width / 24;
+                for (let i = 0; i < 12; i++) {
+                    let x = i * 2 * barWidth + barWidth;
+                    let barHeightIncome = (incomes[i] / maxVal) * (canvas.height - 50);
+                    let barHeightExpense = (expenses[i] / maxVal) * (canvas.height - 50);
+                    ctx.fillStyle = "#00cc66";
+                    ctx.fillRect(x, canvas.height - barHeightIncome, barWidth, barHeightIncome);
+                    ctx.fillStyle = "#cc0000";
+                    ctx.fillRect(x + barWidth, canvas.height - barHeightExpense, barWidth, barHeightExpense);
+                    ctx.fillStyle = "#fff";
+                    ctx.font = "12px Arial";
+                    ctx.fillText(monthNames[i], x, canvas.height - 5);
+                }
+            }
+
+            /****************************
+             * BUSCA AVANÇADA
+             ****************************/
+            function advancedSearch() {
+                let start = document.getElementById("searchStartDate").value;
+                let end = document.getElementById("searchEndDate").value;
+                let text = document.getElementById("searchText").value.trim().toLowerCase();
+                let results = data.transactions.filter(t => {
+                    let d = new Date(t.date);
+                    let cond = true;
+                    if (start) cond = cond && (d >= new Date(start));
+                    if (end) cond = cond && (d <= new Date(end));
+                    if (text) {
+                        cond = cond && ((t.description.toLowerCase().includes(text)) || (t.tags && t.tags.join(" ").toLowerCase().includes(text)));
+                    }
+                    return cond;
+                });
+                let tbody = document.getElementById("searchResults");
+                tbody.innerHTML = "";
+                results.forEach(t => {
+                    let accountInfo = "";
+                    if (t.type === "transfer") {
+                        let source = data.accounts.find(a => a.id === t.sourceAccount);
+                        let dest = data.accounts.find(a => a.id === t.destinationAccount);
+                        accountInfo = `${source ? source.name : "Conta não encontrada"} -> ${dest ? dest.name : "Conta não encontrada"}`;
+                    } else {
+                        let bank = data.accounts.find(a => a.id === t.bankId);
+                        accountInfo = bank ? bank.name : "Conta não encontrada";
+                    }
+                    let tr = document.createElement("tr");
+                    tr.innerHTML = `<td>${t.id}</td>
+                                    <td>${t.date}</td>
+                                    <td>${t.description}</td>
+                                    <td>${formatCurrency(t.type === "expense" ? -t.amount : t.amount)}</td>
+                                    <td>${t.type === "income" ? "Receita" : t.type === "expense" ? "Despesa" : "Transferência"}</td>
+                                    <td>${accountInfo}</td>
+                                    <td>${t.tags ? t.tags.join(", ") : ""}</td>`;
+                    tbody.appendChild(tr);
+                });
+            }
+
+            /****************************
+             * CONFIGURAÇÕES
+             ****************************/
+            function toggleTheme() {
+                if (settings.theme === "dark") {
+                    settings.theme = "light";
+                    document.body.classList.add("light-mode");
+                } else {
+                    settings.theme = "dark";
+                    document.body.classList.remove("light-mode");
+                }
+                saveDataToFirestore();
+            }
+            function applySettings() {
+                let curr = document.getElementById("currencySymbol").value.trim();
+                if (curr) { settings.currencySymbol = curr; }
+                let closingDay = parseInt(document.getElementById("closingDay").value);
+                if (!isNaN(closingDay) && closingDay >= 1 && closingDay <= 31) { settings.closingDay = closingDay; }
+                saveDataToFirestore();
+                alert("Configurações aplicadas!");
+            }
+            function exportCSV() {
+                let csv = "ID,Data,Descrição,Valor,Tipo,Conta Origem,Conta Destino,Tags\n";
+                data.transactions.forEach(t => {
+                    let accountInfo = "";
+                    if (t.type === "transfer") {
+                        let source = data.accounts.find(a => a.id === t.sourceAccount);
+                        let dest = data.accounts.find(a => a.id === t.destinationAccount);
+                        accountInfo = `${source ? source.name : ""},${dest ? dest.name : ""}`;
+                    } else {
+                        let bank = data.accounts.find(a => a.id === t.bankId);
+                        accountInfo = `${bank ? bank.name : ""},`;
+                    }
+                    csv += `${t.id},${t.date},"${t.description}",${t.amount},${t.type},${accountInfo},"${t.tags ? t.tags.join(" ") : ""}"\n`;
+                });
+                let blob = new Blob([csv], { type: "text/csv" });
+                let url = window.URL.createObjectURL(blob);
+                let a = document.createElement("a");
+                a.href = url; a.download = "transacoes.csv";
+                a.click();
+                window.URL.revokeObjectURL(url);
+            }
+            function importCSV() {
+                let fileInput = document.getElementById("csvFile");
+                if (fileInput.files.length === 0) { alert("Selecione um arquivo CSV."); return; }
+                let file = fileInput.files[0];
+                let reader = new FileReader();
+                reader.onload = function (e) {
+                    let text = e.target.result;
+                    let lines = text.split("\n");
+                    for (let i = 1; i < lines.length; i++) {
+                        let line = lines[i].trim();
+                        if (!line) continue;
+                        let cols = line.split(",");
+                        let t = {
+                            id: cols[0],
+                            date: cols[1],
+                            description: cols[2].replace(/"/g, ""),
+                            amount: parseFloat(cols[3]),
+                            type: cols[4],
+                            tags: cols[7] ? cols[7].split(" ") : []
+                        };
+                        if (t.type === "transfer") {
+                            t.sourceAccount = cols[5];
+                            t.destinationAccount = cols[6];
+                        } else {
+                            t.bankId = cols[5];
+                        }
+                        data.transactions.push(t);
+                    }
+                    saveDataToFirestore();
+                    alert("CSV importado (revise as contas vinculadas manualmente).");
+                };
+                reader.readAsText(file);
+            }
+
+            /****************************
+             * BACKUP & RESTAURAÇÃO
+             ****************************/
+            function generateBackup() {
+                document.getElementById("backupData").value = JSON.stringify(data);
+            }
+            function copyBackup() {
+                let txt = document.getElementById("backupData");
+                txt.select(); txt.setSelectionRange(0, 99999);
+                document.execCommand("copy");
+                alert("Backup copiado!");
+            }
+            function restoreBackup() {
+                let txt = document.getElementById("restoreData").value;
+                if (!txt) { alert("Cole o backup para restaurar."); return; }
+                try {
+                    let obj = JSON.parse(txt);
+                    if (obj.accounts && obj.transactions && obj.recurringBills && obj.budgets && obj.goals) {
+                        data = obj;
+                        saveDataToFirestore();
+                        document.getElementById("restoreData").value = "";
+                        alert("Backup restaurado!");
+                    } else { alert("Backup inválido."); }
+                } catch (e) { alert("Erro ao restaurar backup."); console.error(e); }
+            }
+
+            /****************************
+             * LIMPAR DADOS
+             ****************************/
+            async function clearData() {
+                if (confirm("Tem certeza que deseja limpar TODOS os dados? Isso apagará tudo do Firestore.")) {
+                    const userId = getUserId();
+                    if (userId) {
+                        data = { accounts: [], transactions: [], recurringBills: [], budgets: [], goals: [] };
+                        await saveDataToFirestore();
+                        localStorage.clear();
+                        alert("Dados limpos! Recarregando...");
+                        location.reload();
+                    }
+                }
+            }
+
+            /****************************
+             * CHATINHO (BOT INTELIGENTE)
+             ****************************/
+            document.getElementById("chatbot").addEventListener("click", function() {
+                const chatWindow = document.getElementById("chatWindow");
+                chatWindow.style.display = chatWindow.style.display === "none" ? "block" : "none";
+            });
+
+            async function sendMessage() {
+                const input = document.getElementById("chatInput");
+                const question = input.value.trim().toLowerCase();
+                if (!question) return;
+                input.value = "";
+                const messages = document.getElementById("chatMessages");
+                messages.innerHTML += `<p><strong>Você:</strong> ${question}</p>`;
+
+                let response = "";
+                if (question.includes("limpar dados")) {
+                    response = "Desculpe, eu não posso limpar os dados. Use o botão 'Limpar Dados' no menu para isso.";
+                } else if (isAccountCreation(question)) {
+                    response = await processAccountCreation(question);
+                } else if (isTransactionInput(question)) {
+                    response = await processTransactionInput(question);
+                } else if (isRecurringBillInput(question)) {
+                    response = await processRecurringBillInput(question);
+                } else if (isBudgetInput(question)) {
+                    response = await processBudgetInput(question);
+                } else if (isGoalInput(question)) {
+                    response = await processGoalInput(question);
+                } else if (isTransactionList(question)) {
+                    response = await processTransactionList(question);
+                } else {
+                    const dataStr = JSON.stringify(data);
+                    const fullQuestion = `No contexto do gerenciador financeiro, com base nos seguintes dados:\n${dataStr}\nResponda à pergunta: ${question}. Todas as ações devem ser simuladas dentro do programa e não devem tentar acessar ou modificar nada fora dele.`;
+                    response = await askGemini(fullQuestion);
+                }
+
+                messages.innerHTML += `<p><strong>Chatinho:</strong> ${response}</p>`;
+                messages.scrollTop = messages.scrollHeight;
+            }
+
+            function isAccountCreation(input) {
+                const keywords = ["criar conta", "adicionar conta", "nova conta", "fazer conta", "faça conta", "fassa conta"];
+                return keywords.some(keyword => input.includes(keyword));
+            }
+
+            async function processAccountCreation(input) {
+                const regex = /(?:criar|adicionar|fazer|faça|fassa)\s+conta\s+(?:do\s+)?([\w\s]+)\s+(?:com\s+)?(\d+(?:[,.]\d+)?)\s*(reais)?/i;
+                const match = input.match(regex);
+                if (!match) return "Por favor, use o formato: 'Criar conta Nubank com 1000 reais'";
+                const [, bankName, amountStr] = match;
+                const amount = parseFloat(amountStr.replace(",", "."));
+                if (isNaN(amount)) return "Valor inválido.";
+                data.accounts.push({ id: generateId("acc"), name: bankName.trim(), initialBalance: amount, currentBalance: amount });
+                await saveDataToFirestore();
+                return `Conta "${bankName.trim()}" criada com saldo inicial de ${formatCurrency(amount)}!`;
+            }
+
+            function isTransactionInput(input) {
+                const keywords = ["adicionar transação", "registrar transação", "nova transação"];
+                return keywords.some(keyword => input.includes(keyword));
+            }
+
+            async function processTransactionInput(input) {
+                const regex = /(?:adicionar|registrar|nova)\s+transação[:\s]*(\d+(?:[,.]\d+)?)\s*(reais)?\s*,\s*([^,]+),\s*(receita|despesa|transferência),\s*(?:dia\s*)?(\d{1,2}\/\d{1,2}\/\d{4}),\s*([^]+)/i;
+                const match = input.match(regex);
+                if (!match) return "Por favor, use o formato: 'Adicionar transação: 500 reais, aluguel, despesa, dia 10/10/2023, banco X'";
+                let [, amountStr, , description, type, dateStr, bankName] = match;
+                const amount = parseFloat(amountStr.replace(",", "."));
+                const [day, month, year] = dateStr.split("/");
+                const date = `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+                const bank = data.accounts.find(a => a.name.toLowerCase().includes(bankName.trim().toLowerCase()));
+                if (!bank) return "Conta bancária não encontrada. Cadastre-a primeiro!";
+                if (isNaN(amount) || amount <= 0) return "Valor inválido.";
+                if (type.toLowerCase() === "transferência") {
+                    return "Transferências precisam de conta de origem e destino. Use o formulário manual ou liste como 'Transferi 500 reais da conta X pra conta Y 10-10'!";
+                } else {
+                    data.transactions.push({
+                        id: generateId("trx"),
+                        date: date,
+                        description: description.trim(),
+                        amount: amount,
+                        type: type.toLowerCase() === "receita" ? "income" : "expense",
+                        bankId: bank.id,
+                        tags: []
+                    });
+                    await saveDataToFirestore();
+                    return `Transação "${description}" de ${formatCurrency(amount)} (${type}) registrada com sucesso em ${bank.name}!`;
+                }
+            }
+
+            function isRecurringBillInput(input) {
+                const keywords = ["adicionar conta fixa", "criar conta fixa", "nova conta fixa"];
+                return keywords.some(keyword => input.includes(keyword));
+            }
+
+            async function processRecurringBillInput(input) {
+                const regex = /(?:adicionar|criar|nova)\s+conta\s+fixa[:\s]*(\d+(?:[,.]\d+)?)\s*(reais)?\s*,\s*([^,]+),\s*(?:dia\s*)?(\d{1,2}),\s*([^]+)/i;
+                const match = input.match(regex);
+                if (!match) return "Por favor, use o formato: 'Adicionar conta fixa: 300 reais, aluguel, dia 10, banco X'";
+                const [, amountStr, , description, dueDayStr, bankName] = match;
+                const amount = parseFloat(amountStr.replace(",", "."));
+                const dueDay = parseInt(dueDayStr);
+                const bank = data.accounts.find(a => a.name.toLowerCase().includes(bankName.trim().toLowerCase()));
+                if (isNaN(amount) || amount <= 0) return "Valor inválido.";
+                if (isNaN(dueDay) || dueDay < 1 || dueDay > 31) return "Dia de vencimento inválido.";
+                data.recurringBills.push({
+                    id: generateId("rec"),
                     description: description.trim(),
                     amount: amount,
-                    type: "expense",
-                    bankId: account.id,
-                    tags: []
+                    dueDay: dueDay,
+                    bankId: bank ? bank.id : null
                 });
-                response += `Reg Istrei o gasto de ${formatCurrency(amount)} para ${description} na conta ${account.name}!\n`;
-            } else if (matchIncome) {
-                const [, payer, amountStr, accountName, dateStr] = matchIncome;
-                const amount = parseFloat(amountStr.replace(",", "."));
-                const [day, month] = dateStr.split("-");
-                const date = new Date(currentYear, month - 1, day).toISOString().split("T")[0];
-                const account = data.accounts.find(a => a.name.toLowerCase().includes(accountName.trim().toLowerCase()));
-                if (!account) {
-                    response += `Não achei a conta para: ${transaction}\n`;
-                    continue;
-                }
-                data.transactions.push({
-                    id: generateId("trx"),
-                    date: date,
-                    description: `Recebimento de ${payer.trim()}`,
-                    amount: amount,
-                    type: "income",
-                    bankId: account.id,
-                    tags: []
-                });
-                response += `Reg Istrei o recebimento de ${formatCurrency(amount)} de ${payer} na conta ${account.name}!\n`;
-            } else if (matchResgate) {
-                const [, accountName, amountStr, dateStr] = matchResgate;
-                const amount = parseFloat(amountStr.replace(",", "."));
-                const [day, month] = dateStr.split("-");
-                const date = new Date(currentYear, month - 1, day).toISOString().split("T")[0];
-                const account = data.accounts.find(a => a.name.toLowerCase().includes(accountName.trim().toLowerCase()));
-                if (!account) {
-                    response += `Não achei a conta para: ${transaction}\n`;
-                    continue;
-                }
-                data.transactions.push({
-                    id: generateId("trx"),
-                    date: date,
-                    description: "Resgate de metas (cofrinho)",
-                    amount: amount,
-                    type: "income",
-                    bankId: account.id,
-                    tags: ["resgate"]
-                });
-                response += `Reg Istrei o resgate de ${formatCurrency(amount)} na conta ${account.name}!\n`;
-            } else {
-                response += `Não entendi essa transação: ${transaction}\n`;
+                await saveDataToFirestore();
+                return `Conta fixa "${description}" de ${formatCurrency(amount)} com vencimento dia ${dueDay} registrada com sucesso${bank ? ` em ${bank.name}` : " sem conta vinculada"}!`;
             }
-        }
-        await saveDataToFirestore();
-        return response || "Nenhuma transação registrada.";
-    }
 
-    /****************************
-     * INICIALIZAÇÃO
-     ****************************/
-    function init() {
-        updateAllSections();
-        document.getElementById("transactionType").addEventListener("change", function() {
-            if (this.value === "transfer") {
-                document.getElementById("transferOptions").style.display = "block";
-                document.getElementById("transactionBankGroup").style.display = "none";
-            } else {
-                document.getElementById("transferOptions").style.display = "none";
-                document.getElementById("transactionBankGroup").style.display = "block";
+            function isBudgetInput(input) {
+                const keywords = ["adicionar orçamento", "criar orçamento", "novo orçamento"];
+                return keywords.some(keyword => input.includes(keyword));
             }
-        });
-        document.getElementById("filterType").addEventListener("change", function() {
-            if (this.value === "dateRange") {
-                document.getElementById("dateRangeGroup").style.display = "block";
-            } else {
-                document.getElementById("dateRangeGroup").style.display = "none";
+
+            async function processBudgetInput(input) {
+                const regex = /(?:adicionar|criar|novo)\s+orçamento[:\s]*(\d+(?:[,.]\d+)?)\s*(reais)?\s*,\s*([^]+)/i;
+                const match = input.match(regex);
+                if (!match) return "Por favor, use o formato: 'Adicionar orçamento: 500 reais, alimentação'";
+                const [, amountStr, , category] = match;
+                const amount = parseFloat(amountStr.replace(",", "."));
+                if (isNaN(amount) || amount <= 0) return "Valor inválido.";
+                data.budgets.push({
+                    id: generateId("bdg"),
+                    category: category.trim(),
+                    limit: amount
+                });
+                await saveDataToFirestore();
+                return `Orçamento "${category}" com limite de ${formatCurrency(amount)} registrado com sucesso!`;
             }
-        });
-    }
-</script>
+
+            function isGoalInput(input) {
+                const keywords = ["adicionar meta", "criar meta", "nova meta"];
+                return keywords.some(keyword => input.includes(keyword));
+            }
+
+            async function processGoalInput(input) {
+                const regex = /(?:adicionar|criar|nova)\s+meta[:\s]*(\d+(?:[,.]\d+)?)\s*(reais)?\s*,\s*([^,]+)(?:,\s*(?:dia\s*)?(\d{1,2}\/\d{1,2}\/\d{4}))?/i;
+                const match = input.match(regex);
+                if (!match) return "Por favor, use o formato: 'Adicionar meta: 10000 reais, viagem, dia 31/12/2025' (prazo opcional)";
+                const [, amountStr, , name, deadlineStr] = match;
+                const amount = parseFloat(amountStr.replace(",", "."));
+                let deadline = null;
+                if (deadlineStr) {
+                    const [day, month, year] = deadlineStr.split("/");
+                    deadline = `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+                }
+                if (isNaN(amount) || amount <= 0) return "Valor inválido.";
+                data.goals.push({
+                    id: generateId("gol"),
+                    name: name.trim(),
+                    targetValue: amount,
+                    currentValue: 0,
+                    deadline: deadline
+                });
+                await saveDataToFirestore();
+                return `Meta "${name}" de ${formatCurrency(amount)} registrada com sucesso${deadline ? ` com prazo até ${deadline}` : " sem prazo definido"}!`;
+            }
+
+            function isTransactionList(input) {
+                const keywords = ["transferi", "gasto", "recebi", "resgate"];
+                return keywords.some(keyword => input.includes(keyword));
+            }
+
+            async function processTransactionList(input) {
+                const transactions = input.split('\n');
+                let response = "";
+                const currentYear = new Date().getFullYear();
+                for (let transaction of transactions) {
+                    const matchTransfer = transaction.match(/transferi\s+(\d+(?:[,.]\d+)?)\s*reais\s*da\s*conta\s*([\w\s]+)\s*(?:pra|para)\s*conta\s*([\w\s]+)\s*(\d{1,2}-\d{1,2})/i);
+                    const matchExpense = transaction.match(/gasto\s*(?:de)?\s*(\d+(?:[,.]\d+)?)\s*reais\s*(?:da\s*)?conta\s*([\w\s]+)\s*(?:para\s*)?([\w\s]+(?:\s*\([\w\s]+\))?)\s*(\d{1,2}-\d{1,2})/i);
+                    const matchIncome = transaction.match(/recebi\s*(?:de\s*)?([\w\s]+)\s*(\d+(?:[,.]\d+)?)\s*reais\s*(?:conta\s*)?([\w\s]+)\s*(\d{1,2}-\d{1,2})/i);
+                    const matchResgate = transaction.match(/resgate\s*(?:de\s*metas\s*\(cofrinho\))?\s*(?:conta\s*)?([\w\s]+)\s*(\d+(?:[,.]\d+)?)\s*(?:reais)?\s*-\s*(\d{1,2}-\d{1,2})/i);
+                    if (matchTransfer) {
+                        const [, amountStr, sourceAccountName, destAccountName, dateStr] = matchTransfer;
+                        const amount = parseFloat(amountStr.replace(",", "."));
+                        const [day, month] = dateStr.split("-");
+                        const date = new Date(currentYear, month - 1, day).toISOString().split("T")[0];
+                        const sourceAccount = data.accounts.find(a => a.name.toLowerCase().includes(sourceAccountName.trim().toLowerCase()));
+                        const destAccount = data.accounts.find(a => a.name.toLowerCase().includes(destAccountName.trim().toLowerCase()));
+                        if (!sourceAccount || !destAccount) {
+                            response += `Conta não encontrada para transferência: ${transaction}\n`;
+                            continue;
+                        }
+                        data.transactions.push({
+                            id: generateId("trx"),
+                            date: date,
+                            description: `Transferência de ${sourceAccount.name} para ${destAccount.name}`,
+                            amount: amount,
+                            type: "transfer",
+                            sourceAccount: sourceAccount.id,
+                            destinationAccount: destAccount.id,
+                            tags: []
+                        });
+                        response += `Transferência de ${formatCurrency(amount)} de ${sourceAccount.name} para ${destAccount.name} registrada com sucesso!\n`;
+                    } else if (matchExpense) {
+                        const [, amountStr, accountName, description, dateStr] = matchExpense;
+                        const amount = parseFloat(amountStr.replace(",", "."));
+                        const [day, month] = dateStr.split("-");
+                        const date = new Date(currentYear, month - 1, day).toISOString().split("T")[0];
+                        const account = data.accounts.find(a => a.name.toLowerCase().includes(accountName.trim().toLowerCase()));
+                        if (!account) {
+                            response += `Conta não encontrada para gasto: ${transaction}\n`;
+                            continue;
+                        }
+                        data.transactions.push({
+                            id: generateId("trx"),
+                            date: date,
+                            description: description.trim(),
+                            amount: amount,
+                            type: "expense",
+                            bankId: account.id,
+                            tags: []
+                        });
+                        response += `Gasto de ${formatCurrency(amount)} para ${description} registrado com sucesso em ${account.name}!\n`;
+                    } else if (matchIncome) {
+                        const [, payer, amountStr, accountName, dateStr] = matchIncome;
+                        const amount = parseFloat(amountStr.replace(",", "."));
+                        const [day, month] = dateStr.split("-");
+                        const date = new Date(currentYear, month - 1, day).toISOString().split("T")[0];
+                        const account = data.accounts.find(a => a.name.toLowerCase().includes(accountName.trim().toLowerCase()));
+                        if (!account) {
+                            response += `Conta não encontrada para recebimento: ${transaction}\n`;
+                            continue;
+                        }
+                        data.transactions.push({
+                            id: generateId("trx"),
+                            date: date,
+                            description: `Recebimento de ${payer.trim()}`,
+                            amount: amount,
+                            type: "income",
+                            bankId: account.id,
+                            tags: []
+                        });
+                        response += `Recebimento de ${formatCurrency(amount)} de ${payer} registrado com sucesso em ${account.name}!\n`;
+                    } else if (matchResgate) {
+                        const [, accountName, amountStr, dateStr] = matchResgate;
+                        const amount = parseFloat(amountStr.replace(",", "."));
+                        const [day, month] = dateStr.split("-");
+                        const date = new Date(currentYear, month - 1, day).toISOString().split("T")[0];
+                        const account = data.accounts.find(a => a.name.toLowerCase().includes(accountName.trim().toLowerCase()));
+                        if (!account) {
+                            response += `Conta não encontrada para resgate: ${transaction}\n`;
+                            continue;
+                        }
+                        data.transactions.push({
+                            id: generateId("trx"),
+                            date: date,
+                            description: "Resgate de metas (cofrinho)",
+                            amount: amount,
+                            type: "income",
+                            bankId: account.id,
+                            tags: ["resgate"]
+                        });
+                        response += `Resgate de ${formatCurrency(amount)} registrado com sucesso em ${account.name}!\n`;
+                    } else {
+                        response += `Não entendi a transação: ${transaction}\n`;
+                    }
+                }
+                await saveDataToFirestore();
+                return response || "Nenhuma transação registrada.";
+            }
+
+            /****************************
+             * INICIALIZAÇÃO
+             ****************************/
+            function init() {
+                updateAllSections();
+                document.getElementById("transactionType").addEventListener("change", function() {
+                    if (this.value === "transfer") {
+                        document.getElementById("transferOptions").style.display = "block";
+                        document.getElementById("transactionBankGroup").style.display = "none";
+                    } else {
+                        document.getElementById("transferOptions").style.display = "none";
+                        document.getElementById("transactionBankGroup").style.display = "block";
+                    }
+                });
+                document.getElementById("filterType").addEventListener("change", function() {
+                    if (this.value === "dateRange") {
+                        document.getElementById("dateRangeGroup").style.display = "block";
+                    } else {
+                        document.getElementById("dateRangeGroup").style.display = "none";
+                    }
+                });
+            }
+        </script>
     </div>
 </body>
 </html>
