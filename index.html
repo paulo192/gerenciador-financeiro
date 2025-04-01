@@ -496,10 +496,10 @@
             <section id="help">
                 <h2>Ajuda - Guia do Programa</h2>
                 <ul>
-                    <li><strong>Chatinho:</strong> Use o bot flutuante para perguntas ou registrar dados automaticamente (ex.: "Adicionar transação: 500 reais, aluguel, despesa, dia 10/10/2023, banco X" ou "Criar conta Nubank com 1000 reais").</li>
+                    <li><strong>Chatinho:</strong> Use o bot flutuante para perguntas ou registrar dados automaticamente (ex.: "Criar conta Nubank com 1000 reais" ou cole uma lista como "Transferi 400 reais da conta Nubank pra Iti 17-03").</li>
                     <li><strong>Contas Bancárias:</strong> Cadastre suas contas. O saldo atual é calculado a partir do saldo inicial mais as transações.</li>
-                    <li><strong>Transações:</strong> Registre receitas, despesas e transferências. O saldo das contas é atualizado automaticamente.</li>
-                    <li><strong>Contas Fixas:</strong> Adicione contas fixas e pague-as diretamente, gerando uma transação de despesa.</li>
+                    <li><strong>Transações:</strong> Registre receitas, despesas e transferências manualmente ou via Chatinho.</li>
+                    <li><strong>Contas Fixas:</strong> Adicione contas fixas e pague-as diretamente.</li>
                     <li><strong>Orçamentos:</strong> Defina limites para categorias e acompanhe o consumo mensal.</li>
                     <li><strong>Metas:</strong> Crie metas financeiras e acompanhe seu progresso.</li>
                     <li><strong>Relatórios:</strong> Gere relatórios mensais detalhados.</li>
@@ -508,7 +508,7 @@
                     <li><strong>Busca Avançada:</strong> Filtre transações por data e texto.</li>
                     <li><strong>Configurações:</strong> Altere tema, moeda, dia de fechamento e exporte/importe transações.</li>
                     <li><strong>Backup:</strong> Gere e restaure backups dos seus dados.</li>
-                    <li><strong>Limpar Dados:</strong> Apaga todos os dados armazenados (não disponível via Chatinho).</li>
+                    <li><strong>Limpar Dados:</strong> Apaga todos os dados armazenados (use o botão, não via Chatinho).</li>
                 </ul>
             </section>
 
@@ -549,12 +549,12 @@
         <script>
             // Configuração do Firebase
             const firebaseConfig = {
-                apiKey: "AIzaSyBVCtmkrtBtVl3A4xcYxckHFFa_eHxiQ0w",
-                authDomain: "gerenciador-financeiro-6d8c2.firebaseapp.com",
-                projectId: "gerenciador-financeiro-6d8c2",
-                storageBucket: "gerenciador-financeiro-6d8c2.appspot.com",
-                messagingSenderId: "693980228824",
-                appId: "1:693980228824:web:d183b4b3f61978f2c83bad"
+                apiKey: "AIzaSyBVCtmkrtBtVl3A4xcYxckHFFa_eHxiQ0w", // Substitua pela sua chave do Firebase
+                authDomain: "gerenciador-financeiro-6d8c2.firebaseapp.com", // Substitua pelo seu domínio
+                projectId: "gerenciador-financeiro-6d8c2", // Substitua pelo seu ID de projeto
+                storageBucket: "gerenciador-financeiro-6d8c2.firebasestorage.app", // Substitua pelo seu bucket
+                messagingSenderId: "693980228824", // Substitua pelo seu Sender ID
+                appId: "1:693980228824:web:d183b4b3f61978f2c83bad" // Substitua pelo seu App ID
             };
             firebase.initializeApp(firebaseConfig);
             const db = firebase.firestore();
@@ -1137,7 +1137,7 @@
             }
 
             async function askGemini(question) {
-                const apiKey = 'AIzaSyDy_F3UaLhqie3x5gukZ0Xqiw2tSY0s8W0'; // SUBSTITUA ISSO PELA CHAVE QUE VOCÊ VAI GERAR NO GOOGLE CLOUD
+                const apiKey = 'AIzaSyDy_F3UaLhqie3x5gukZ0Xqiw2tSY0s8W0'; // Substitua pela sua chave do Google Cloud para Gemini
                 const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
                 const requestBody = {
                     contents: [{
@@ -1539,16 +1539,18 @@
                 let response = "";
                 if (question.includes("limpar dados")) {
                     response = "Desculpe, eu não posso limpar os dados. Use o botão 'Limpar Dados' no menu para isso.";
-                } else if (question.includes("criar conta") || question.includes("adicionar conta")) {
+                } else if (isAccountCreation(question)) {
                     response = await processAccountCreation(question);
-                } else if (question.includes("adicionar transação")) {
+                } else if (isTransactionInput(question)) {
                     response = await processTransactionInput(question);
-                } else if (question.includes("adicionar conta fixa") || question.includes("criar conta fixa")) {
+                } else if (isRecurringBillInput(question)) {
                     response = await processRecurringBillInput(question);
-                } else if (question.includes("adicionar orçamento") || question.includes("criar orçamento")) {
+                } else if (isBudgetInput(question)) {
                     response = await processBudgetInput(question);
-                } else if (question.includes("adicionar meta") || question.includes("criar meta")) {
+                } else if (isGoalInput(question)) {
                     response = await processGoalInput(question);
+                } else if (isTransactionList(question)) {
+                    response = await processTransactionList(question);
                 } else {
                     const dataStr = JSON.stringify(data);
                     const fullQuestion = `No contexto do gerenciador financeiro, com base nos seguintes dados:\n${dataStr}\nResponda à pergunta: ${question}. Todas as ações devem ser simuladas dentro do programa e não devem tentar acessar ou modificar nada fora dele.`;
@@ -1559,11 +1561,16 @@
                 messages.scrollTop = messages.scrollHeight;
             }
 
+            function isAccountCreation(input) {
+                const keywords = ["criar conta", "adicionar conta", "nova conta", "fazer conta", "faça conta", "fassa conta"];
+                return keywords.some(keyword => input.includes(keyword));
+            }
+
             async function processAccountCreation(input) {
-                const regex = /(criar|adicionar)\s+conta\s+(?:do\s+)?([\w\s]+)\s+(?:com\s+)?(\d+(?:[,.]\d+)?)\s*(reais)?/i;
+                const regex = /(?:criar|adicionar|fazer|faça|fassa)\s+conta\s+(?:do\s+)?([\w\s]+)\s+(?:com\s+)?(\d+(?:[,.]\d+)?)\s*(reais)?/i;
                 const match = input.match(regex);
                 if (!match) return "Por favor, use o formato: 'Criar conta Nubank com 1000 reais'";
-                const [, , bankName, amountStr] = match;
+                const [, bankName, amountStr] = match;
                 const amount = parseFloat(amountStr.replace(",", "."));
                 if (isNaN(amount)) return "Valor inválido.";
                 data.accounts.push({ id: generateId("acc"), name: bankName.trim(), initialBalance: amount, currentBalance: amount });
@@ -1571,8 +1578,13 @@
                 return `Conta "${bankName.trim()}" criada com saldo inicial de ${formatCurrency(amount)}!`;
             }
 
+            function isTransactionInput(input) {
+                const keywords = ["adicionar transação", "registrar transação", "nova transação"];
+                return keywords.some(keyword => input.includes(keyword));
+            }
+
             async function processTransactionInput(input) {
-                const regex = /adicionar transação[:\s]*(\d+(?:[,.]\d+)?)\s*(reais)?\s*,\s*([^,]+),\s*(receita|despesa|transferência),\s*(?:dia\s*)?(\d{1,2}\/\d{1,2}\/\d{4}),\s*([^]+)/i;
+                const regex = /(?:adicionar|registrar|nova)\s+transação[:\s]*(\d+(?:[,.]\d+)?)\s*(reais)?\s*,\s*([^,]+),\s*(receita|despesa|transferência),\s*(?:dia\s*)?(\d{1,2}\/\d{1,2}\/\d{4}),\s*([^]+)/i;
                 const match = input.match(regex);
                 if (!match) return "Por favor, use o formato: 'Adicionar transação: 500 reais, aluguel, despesa, dia 10/10/2023, banco X'";
                 let [, amountStr, , description, type, dateStr, bankName] = match;
@@ -1583,7 +1595,7 @@
                 if (!bank) return "Conta bancária não encontrada. Cadastre-a primeiro!";
                 if (isNaN(amount) || amount <= 0) return "Valor inválido.";
                 if (type.toLowerCase() === "transferência") {
-                    return "Transferências precisam de conta de origem e destino. Use o formulário manual por enquanto!";
+                    return "Transferências precisam de conta de origem e destino. Use o formulário manual ou liste como 'Transferi 500 reais da conta X pra conta Y 10-10'!";
                 } else {
                     data.transactions.push({
                         id: generateId("trx"),
@@ -1599,11 +1611,16 @@
                 }
             }
 
+            function isRecurringBillInput(input) {
+                const keywords = ["adicionar conta fixa", "criar conta fixa", "nova conta fixa"];
+                return keywords.some(keyword => input.includes(keyword));
+            }
+
             async function processRecurringBillInput(input) {
-                const regex = /(adicionar|criar)\s+conta\s+fixa[:\s]*(\d+(?:[,.]\d+)?)\s*(reais)?\s*,\s*([^,]+),\s*(?:dia\s*)?(\d{1,2}),\s*([^]+)/i;
+                const regex = /(?:adicionar|criar|nova)\s+conta\s+fixa[:\s]*(\d+(?:[,.]\d+)?)\s*(reais)?\s*,\s*([^,]+),\s*(?:dia\s*)?(\d{1,2}),\s*([^]+)/i;
                 const match = input.match(regex);
                 if (!match) return "Por favor, use o formato: 'Adicionar conta fixa: 300 reais, aluguel, dia 10, banco X'";
-                const [, , amountStr, , description, dueDayStr, bankName] = match;
+                const [, amountStr, , description, dueDayStr, bankName] = match;
                 const amount = parseFloat(amountStr.replace(",", "."));
                 const dueDay = parseInt(dueDayStr);
                 const bank = data.accounts.find(a => a.name.toLowerCase().includes(bankName.trim().toLowerCase()));
@@ -1620,11 +1637,16 @@
                 return `Conta fixa "${description}" de ${formatCurrency(amount)} com vencimento dia ${dueDay} registrada com sucesso${bank ? ` em ${bank.name}` : " sem conta vinculada"}!`;
             }
 
+            function isBudgetInput(input) {
+                const keywords = ["adicionar orçamento", "criar orçamento", "novo orçamento"];
+                return keywords.some(keyword => input.includes(keyword));
+            }
+
             async function processBudgetInput(input) {
-                const regex = /(adicionar|criar)\s+orçamento[:\s]*(\d+(?:[,.]\d+)?)\s*(reais)?\s*,\s*([^]+)/i;
+                const regex = /(?:adicionar|criar|novo)\s+orçamento[:\s]*(\d+(?:[,.]\d+)?)\s*(reais)?\s*,\s*([^]+)/i;
                 const match = input.match(regex);
                 if (!match) return "Por favor, use o formato: 'Adicionar orçamento: 500 reais, alimentação'";
-                const [, , amountStr, , category] = match;
+                const [, amountStr, , category] = match;
                 const amount = parseFloat(amountStr.replace(",", "."));
                 if (isNaN(amount) || amount <= 0) return "Valor inválido.";
                 data.budgets.push({
@@ -1636,11 +1658,16 @@
                 return `Orçamento "${category}" com limite de ${formatCurrency(amount)} registrado com sucesso!`;
             }
 
+            function isGoalInput(input) {
+                const keywords = ["adicionar meta", "criar meta", "nova meta"];
+                return keywords.some(keyword => input.includes(keyword));
+            }
+
             async function processGoalInput(input) {
-                const regex = /(adicionar|criar)\s+meta[:\s]*(\d+(?:[,.]\d+)?)\s*(reais)?\s*,\s*([^,]+)(?:,\s*(?:dia\s*)?(\d{1,2}\/\d{1,2}\/\d{4}))?/i;
+                const regex = /(?:adicionar|criar|nova)\s+meta[:\s]*(\d+(?:[,.]\d+)?)\s*(reais)?\s*,\s*([^,]+)(?:,\s*(?:dia\s*)?(\d{1,2}\/\d{1,2}\/\d{4}))?/i;
                 const match = input.match(regex);
                 if (!match) return "Por favor, use o formato: 'Adicionar meta: 10000 reais, viagem, dia 31/12/2025' (prazo opcional)";
-                const [, , amountStr, , name, deadlineStr] = match;
+                const [, amountStr, , name, deadlineStr] = match;
                 const amount = parseFloat(amountStr.replace(",", "."));
                 let deadline = null;
                 if (deadlineStr) {
@@ -1657,6 +1684,110 @@
                 });
                 await saveDataToFirestore();
                 return `Meta "${name}" de ${formatCurrency(amount)} registrada com sucesso${deadline ? ` com prazo até ${deadline}` : " sem prazo definido"}!`;
+            }
+
+            function isTransactionList(input) {
+                const keywords = ["transferi", "gasto", "recebi", "resgate"];
+                return keywords.some(keyword => input.includes(keyword));
+            }
+
+            async function processTransactionList(input) {
+                const transactions = input.split('\n');
+                let response = "";
+                const currentYear = new Date().getFullYear();
+                for (let transaction of transactions) {
+                    const matchTransfer = transaction.match(/transferi\s+(\d+(?:[,.]\d+)?)\s*reais\s*da\s*conta\s*([\w\s]+)\s*(?:pra|para)\s*conta\s*([\w\s]+)\s*(\d{1,2}-\d{1,2})/i);
+                    const matchExpense = transaction.match(/gasto\s*(?:de)?\s*(\d+(?:[,.]\d+)?)\s*reais\s*(?:da\s*)?conta\s*([\w\s]+)\s*(?:para\s*)?([\w\s]+(?:\s*\([\w\s]+\))?)\s*(\d{1,2}-\d{1,2})/i);
+                    const matchIncome = transaction.match(/recebi\s*(?:de\s*)?([\w\s]+)\s*(\d+(?:[,.]\d+)?)\s*reais\s*(?:conta\s*)?([\w\s]+)\s*(\d{1,2}-\d{1,2})/i);
+                    const matchResgate = transaction.match(/resgate\s*(?:de\s*metas\s*\(cofrinho\))?\s*(?:conta\s*)?([\w\s]+)\s*(\d+(?:[,.]\d+)?)\s*(?:reais)?\s*-\s*(\d{1,2}-\d{1,2})/i);
+                    if (matchTransfer) {
+                        const [, amountStr, sourceAccountName, destAccountName, dateStr] = matchTransfer;
+                        const amount = parseFloat(amountStr.replace(",", "."));
+                        const [day, month] = dateStr.split("-");
+                        const date = new Date(currentYear, month - 1, day).toISOString().split("T")[0];
+                        const sourceAccount = data.accounts.find(a => a.name.toLowerCase().includes(sourceAccountName.trim().toLowerCase()));
+                        const destAccount = data.accounts.find(a => a.name.toLowerCase().includes(destAccountName.trim().toLowerCase()));
+                        if (!sourceAccount || !destAccount) {
+                            response += `Conta não encontrada para transferência: ${transaction}\n`;
+                            continue;
+                        }
+                        data.transactions.push({
+                            id: generateId("trx"),
+                            date: date,
+                            description: `Transferência de ${sourceAccount.name} para ${destAccount.name}`,
+                            amount: amount,
+                            type: "transfer",
+                            sourceAccount: sourceAccount.id,
+                            destinationAccount: destAccount.id,
+                            tags: []
+                        });
+                        response += `Transferência de ${formatCurrency(amount)} de ${sourceAccount.name} para ${destAccount.name} registrada com sucesso!\n`;
+                    } else if (matchExpense) {
+                        const [, amountStr, accountName, description, dateStr] = matchExpense;
+                        const amount = parseFloat(amountStr.replace(",", "."));
+                        const [day, month] = dateStr.split("-");
+                        const date = new Date(currentYear, month - 1, day).toISOString().split("T")[0];
+                        const account = data.accounts.find(a => a.name.toLowerCase().includes(accountName.trim().toLowerCase()));
+                        if (!account) {
+                            response += `Conta não encontrada para gasto: ${transaction}\n`;
+                            continue;
+                        }
+                        data.transactions.push({
+                            id: generateId("trx"),
+                            date: date,
+                            description: description.trim(),
+                            amount: amount,
+                            type: "expense",
+                            bankId: account.id,
+                            tags: []
+                        });
+                        response += `Gasto de ${formatCurrency(amount)} para ${description} registrado com sucesso em ${account.name}!\n`;
+                    } else if (matchIncome) {
+                        const [, payer, amountStr, accountName, dateStr] = matchIncome;
+                        const amount = parseFloat(amountStr.replace(",", "."));
+                        const [day, month] = dateStr.split("-");
+                        const date = new Date(currentYear, month - 1, day).toISOString().split("T")[0];
+                        const account = data.accounts.find(a => a.name.toLowerCase().includes(accountName.trim().toLowerCase()));
+                        if (!account) {
+                            response += `Conta não encontrada para recebimento: ${transaction}\n`;
+                            continue;
+                        }
+                        data.transactions.push({
+                            id: generateId("trx"),
+                            date: date,
+                            description: `Recebimento de ${payer.trim()}`,
+                            amount: amount,
+                            type: "income",
+                            bankId: account.id,
+                            tags: []
+                        });
+                        response += `Recebimento de ${formatCurrency(amount)} de ${payer} registrado com sucesso em ${account.name}!\n`;
+                    } else if (matchResgate) {
+                        const [, accountName, amountStr, dateStr] = matchResgate;
+                        const amount = parseFloat(amountStr.replace(",", "."));
+                        const [day, month] = dateStr.split("-");
+                        const date = new Date(currentYear, month - 1, day).toISOString().split("T")[0];
+                        const account = data.accounts.find(a => a.name.toLowerCase().includes(accountName.trim().toLowerCase()));
+                        if (!account) {
+                            response += `Conta não encontrada para resgate: ${transaction}\n`;
+                            continue;
+                        }
+                        data.transactions.push({
+                            id: generateId("trx"),
+                            date: date,
+                            description: "Resgate de metas (cofrinho)",
+                            amount: amount,
+                            type: "income",
+                            bankId: account.id,
+                            tags: ["resgate"]
+                        });
+                        response += `Resgate de ${formatCurrency(amount)} registrado com sucesso em ${account.name}!\n`;
+                    } else {
+                        response += `Não entendi a transação: ${transaction}\n`;
+                    }
+                }
+                await saveDataToFirestore();
+                return response || "Nenhuma transação registrada.";
             }
 
             /****************************
