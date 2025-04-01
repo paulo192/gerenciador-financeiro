@@ -496,7 +496,7 @@
             <section id="help">
                 <h2>Ajuda - Guia do Programa</h2>
                 <ul>
-                    <li><strong>Chatinho:</strong> Use o bot flutuante para perguntas ou registrar dados automaticamente (ex.: "Adicionar transação: 500 reais, aluguel, despesa, dia 10/10/2023, banco X").</li>
+                    <li><strong>Chatinho:</strong> Use o bot flutuante para perguntas ou registrar dados automaticamente (ex.: "Adicionar transação: 500 reais, aluguel, despesa, dia 10/10/2023, banco X" ou "Criar conta Nubank com 1000 reais").</li>
                     <li><strong>Contas Bancárias:</strong> Cadastre suas contas. O saldo atual é calculado a partir do saldo inicial mais as transações.</li>
                     <li><strong>Transações:</strong> Registre receitas, despesas e transferências. O saldo das contas é atualizado automaticamente.</li>
                     <li><strong>Contas Fixas:</strong> Adicione contas fixas e pague-as diretamente, gerando uma transação de despesa.</li>
@@ -508,7 +508,7 @@
                     <li><strong>Busca Avançada:</strong> Filtre transações por data e texto.</li>
                     <li><strong>Configurações:</strong> Altere tema, moeda, dia de fechamento e exporte/importe transações.</li>
                     <li><strong>Backup:</strong> Gere e restaure backups dos seus dados.</li>
-                    <li><strong>Limpar Dados:</strong> Apaga todos os dados armazenados.</li>
+                    <li><strong>Limpar Dados:</strong> Apaga todos os dados armazenados (não disponível via Chatinho).</li>
                 </ul>
             </section>
 
@@ -540,7 +540,7 @@
         </div>
         <div id="chatWindow">
             <div id="chatMessages">
-                <p><strong>Chatinho:</strong> Oi! Eu sou o Chatinho, seu ajudante financeiro. Pergunte algo ou me diga o que registrar!</p>
+                <p><strong>Chatinho:</strong> Oi! Eu sou o Chatinho, seu ajudante financeiro. Pergunte algo ou me diga o que registrar no programa!</p>
             </div>
             <input type="text" id="chatInput" placeholder="Digite aqui...">
             <button onclick="sendMessage()">Enviar</button>
@@ -550,7 +550,7 @@
             // Configuração do Firebase
             const firebaseConfig = {
                 apiKey: "AIzaSyBVCtmkrtBtVl3A4xcYxckHFFa_eHxiQ0w",
-                authDomain: "AIzaSyBVCtmkrtBtVl3A4xcYxckHFFa_eHxiQ0w.firebaseapp.com",
+                authDomain: "gerenciador-financeiro-6d8c2.firebaseapp.com",
                 projectId: "gerenciador-financeiro-6d8c2",
                 storageBucket: "gerenciador-financeiro-6d8c2.appspot.com",
                 messagingSenderId: "693980228824",
@@ -1123,6 +1123,7 @@
                 });
                 document.getElementById("fixedBills").textContent = `Contas Fixas (${mStr}): ${formatCurrency(fixedTotal)} (Pagas: ${formatCurrency(paidFixed)})`;
 
+
                 let income = 0, expense = 0;
                 data.transactions.forEach(t => {
                     let d = new Date(t.date);
@@ -1167,18 +1168,24 @@
             async function updateInsightsAndReminders() {
                 updateDashboard();
                 const totalAccounts = data.accounts.reduce((sum, a) => sum + (a.currentBalance || 0), 0);
-                const questionInsights = `O usuário tem um saldo total de ${totalAccounts}. Ele está com saldo positivo ou negativo? Responda em uma frase curta.`;
-                const insight = await askGemini(questionInsights);
-                document.getElementById("insightsText").textContent = insight;
+                document.getElementById("insightsText").textContent = totalAccounts >= 0 
+                    ? `Seu saldo total é ${formatCurrency(totalAccounts)}, você está com saldo positivo!` 
+                    : `Seu saldo total é ${formatCurrency(totalAccounts)}, você está com saldo negativo.`;
 
                 const now = new Date();
                 const today = now.getDate();
                 const reminders = data.recurringBills.filter(rb => rb.dueDay >= today && (rb.dueDay - today) <= 5);
-                const reminderText = reminders.map(rb => `${rb.description} - vence em ${rb.dueDay - today} dia(s)`).join('\n');
-                const questionReminders = `Aqui estão os lembretes de vencimento:\n${reminderText}\nFormate isso de forma amigável em poucas palavras.`;
-                const formattedReminders = await askGemini(questionReminders);
                 const remList = document.getElementById("remindersList");
-                remList.innerHTML = formattedReminders.replace(/\n/g, '<br>');
+                remList.innerHTML = "";
+                if (reminders.length === 0) {
+                    remList.innerHTML = "<li>Nenhum lembrete de vencimento próximo.</li>";
+                } else {
+                    reminders.forEach(rb => {
+                        const li = document.createElement("li");
+                        li.textContent = `${rb.description} - vence em ${rb.dueDay - today} dia(s)`;
+                        remList.appendChild(li);
+                    });
+                }
             }
 
             /****************************
@@ -1523,22 +1530,45 @@
 
             async function sendMessage() {
                 const input = document.getElementById("chatInput");
-                const question = input.value.trim();
+                const question = input.value.trim().toLowerCase();
                 if (!question) return;
                 input.value = "";
                 const messages = document.getElementById("chatMessages");
                 messages.innerHTML += `<p><strong>Você:</strong> ${question}</p>`;
 
-                if (question.toLowerCase().includes("adicionar transação")) {
-                    const answer = await processTransactionInput(question);
-                    messages.innerHTML += `<p><strong>Chatinho:</strong> ${answer}</p>`;
+                let response = "";
+                if (question.includes("limpar dados")) {
+                    response = "Desculpe, eu não posso limpar os dados. Use o botão 'Limpar Dados' no menu para isso.";
+                } else if (question.includes("criar conta") || question.includes("adicionar conta")) {
+                    response = await processAccountCreation(question);
+                } else if (question.includes("adicionar transação")) {
+                    response = await processTransactionInput(question);
+                } else if (question.includes("adicionar conta fixa") || question.includes("criar conta fixa")) {
+                    response = await processRecurringBillInput(question);
+                } else if (question.includes("adicionar orçamento") || question.includes("criar orçamento")) {
+                    response = await processBudgetInput(question);
+                } else if (question.includes("adicionar meta") || question.includes("criar meta")) {
+                    response = await processGoalInput(question);
                 } else {
                     const dataStr = JSON.stringify(data);
-                    const fullQuestion = `Com base nestes dados financeiros:\n${dataStr}\nResponda à pergunta: ${question}`;
-                    const answer = await askGemini(fullQuestion);
-                    messages.innerHTML += `<p><strong>Chatinho:</strong> ${answer}</p>`;
+                    const fullQuestion = `No contexto do gerenciador financeiro, com base nos seguintes dados:\n${dataStr}\nResponda à pergunta: ${question}. Todas as ações devem ser simuladas dentro do programa e não devem tentar acessar ou modificar nada fora dele.`;
+                    response = await askGemini(fullQuestion);
                 }
+
+                messages.innerHTML += `<p><strong>Chatinho:</strong> ${response}</p>`;
                 messages.scrollTop = messages.scrollHeight;
+            }
+
+            async function processAccountCreation(input) {
+                const regex = /(criar|adicionar)\s+conta\s+(?:do\s+)?([\w\s]+)\s+(?:com\s+)?(\d+(?:[,.]\d+)?)\s*(reais)?/i;
+                const match = input.match(regex);
+                if (!match) return "Por favor, use o formato: 'Criar conta Nubank com 1000 reais'";
+                const [, , bankName, amountStr] = match;
+                const amount = parseFloat(amountStr.replace(",", "."));
+                if (isNaN(amount)) return "Valor inválido.";
+                data.accounts.push({ id: generateId("acc"), name: bankName.trim(), initialBalance: amount, currentBalance: amount });
+                await saveDataToFirestore();
+                return `Conta "${bankName.trim()}" criada com saldo inicial de ${formatCurrency(amount)}!`;
             }
 
             async function processTransactionInput(input) {
@@ -1567,6 +1597,66 @@
                     await saveDataToFirestore();
                     return `Transação "${description}" de ${formatCurrency(amount)} (${type}) registrada com sucesso em ${bank.name}!`;
                 }
+            }
+
+            async function processRecurringBillInput(input) {
+                const regex = /(adicionar|criar)\s+conta\s+fixa[:\s]*(\d+(?:[,.]\d+)?)\s*(reais)?\s*,\s*([^,]+),\s*(?:dia\s*)?(\d{1,2}),\s*([^]+)/i;
+                const match = input.match(regex);
+                if (!match) return "Por favor, use o formato: 'Adicionar conta fixa: 300 reais, aluguel, dia 10, banco X'";
+                const [, , amountStr, , description, dueDayStr, bankName] = match;
+                const amount = parseFloat(amountStr.replace(",", "."));
+                const dueDay = parseInt(dueDayStr);
+                const bank = data.accounts.find(a => a.name.toLowerCase().includes(bankName.trim().toLowerCase()));
+                if (isNaN(amount) || amount <= 0) return "Valor inválido.";
+                if (isNaN(dueDay) || dueDay < 1 || dueDay > 31) return "Dia de vencimento inválido.";
+                data.recurringBills.push({
+                    id: generateId("rec"),
+                    description: description.trim(),
+                    amount: amount,
+                    dueDay: dueDay,
+                    bankId: bank ? bank.id : null
+                });
+                await saveDataToFirestore();
+                return `Conta fixa "${description}" de ${formatCurrency(amount)} com vencimento dia ${dueDay} registrada com sucesso${bank ? ` em ${bank.name}` : " sem conta vinculada"}!`;
+            }
+
+            async function processBudgetInput(input) {
+                const regex = /(adicionar|criar)\s+orçamento[:\s]*(\d+(?:[,.]\d+)?)\s*(reais)?\s*,\s*([^]+)/i;
+                const match = input.match(regex);
+                if (!match) return "Por favor, use o formato: 'Adicionar orçamento: 500 reais, alimentação'";
+                const [, , amountStr, , category] = match;
+                const amount = parseFloat(amountStr.replace(",", "."));
+                if (isNaN(amount) || amount <= 0) return "Valor inválido.";
+                data.budgets.push({
+                    id: generateId("bdg"),
+                    category: category.trim(),
+                    limit: amount
+                });
+                await saveDataToFirestore();
+                return `Orçamento "${category}" com limite de ${formatCurrency(amount)} registrado com sucesso!`;
+            }
+
+            async function processGoalInput(input) {
+                const regex = /(adicionar|criar)\s+meta[:\s]*(\d+(?:[,.]\d+)?)\s*(reais)?\s*,\s*([^,]+)(?:,\s*(?:dia\s*)?(\d{1,2}\/\d{1,2}\/\d{4}))?/i;
+                const match = input.match(regex);
+                if (!match) return "Por favor, use o formato: 'Adicionar meta: 10000 reais, viagem, dia 31/12/2025' (prazo opcional)";
+                const [, , amountStr, , name, deadlineStr] = match;
+                const amount = parseFloat(amountStr.replace(",", "."));
+                let deadline = null;
+                if (deadlineStr) {
+                    const [day, month, year] = deadlineStr.split("/");
+                    deadline = `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+                }
+                if (isNaN(amount) || amount <= 0) return "Valor inválido.";
+                data.goals.push({
+                    id: generateId("gol"),
+                    name: name.trim(),
+                    targetValue: amount,
+                    currentValue: 0,
+                    deadline: deadline
+                });
+                await saveDataToFirestore();
+                return `Meta "${name}" de ${formatCurrency(amount)} registrada com sucesso${deadline ? ` com prazo até ${deadline}` : " sem prazo definido"}!`;
             }
 
             /****************************
