@@ -1,1603 +1,1597 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <title>Gerenciador Financeiro Online</title>
-  <style>
-    /* RESET E ESTILOS GERAIS */
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body {
-      height: 100%;
-      font-family: Arial, sans-serif;
-      background-color: #1e1e1e;
-      color: #f0f0f0;
-    }
-    body { display: flex; flex-direction: column; }
-    /* CABEÇALHO E NAV */
-    header {
-      background: linear-gradient(160deg, #2c2c2c, #3a3a3a);
-      padding: 20px; text-align: center;
-    }
-    header h1 { font-size: 2rem; color: #fff; }
-    nav { margin-top: 15px; }
-    nav button {
-      background: #4c4c4c; border: none; color: #f0f0f0;
-      padding: 10px 15px; margin: 5px; cursor: pointer;
-      border-radius: 4px; font-weight: bold;
-    }
-    nav button:hover { background: #696969; }
-    .btn-clear {
-      padding: 10px 20px; font-size: 16px;
-      background-color: #9B59B6; border: none;
-      border-radius: 4px; color: #FFF; cursor: pointer;
-      transition: opacity 0.2s;
-    }
-    .btn-clear:hover { opacity: 0.8; }
-    /* CONTEÚDO */
-    #container { flex: 1; padding: 20px; }
-    section { display: none; }
-    section.active { display: block; }
-    /* FORMULÁRIOS */
-    form {
-      background: #2a2a2a; padding: 20px; border-radius: 4px;
-      margin-bottom: 20px;
-    }
-    form h2 { margin-bottom: 15px; color: #fff; }
-    .form-group { margin-bottom: 15px; }
-    .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
-    .form-group input, .form-group select, .form-group textarea {
-      width: 100%; padding: 10px; background: #3a3a3a;
-      border: none; color: #fff; border-radius: 4px;
-    }
-    .form-group input[type="number"] { -moz-appearance: textfield; }
-    .form-group textarea { resize: vertical; min-height: 70px; }
-    .form-group button, .btn { background: #4c4c4c; color: #fff; padding: 10px 20px; border: none; cursor: pointer; border-radius: 4px; font-weight: bold; margin-top: 5px; }
-    .form-group button:hover, .btn:hover { background: #696969; }
-    /* TABELAS */
-    table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-    table thead { background: #4c4c4c; }
-    table th, table td { padding: 12px; text-align: left; border: 1px solid #3a3a3a; }
-    table tbody tr:nth-child(odd) { background: #2a2a2a; }
-    table tbody tr:nth-child(even) { background: #333333; }
-    /* BOTÕES DE AÇÃO */
-    .action-btn {
-      background: #4c4c4c; border: none; color: #fff;
-      padding: 6px 12px; margin: 2px; cursor: pointer; border-radius: 4px;
-    }
-    .action-btn:hover { background: #696969; }
-    /* RESUMO / DASHBOARD */
-    .summary-container { display: flex; flex-wrap: wrap; gap: 20px; margin-bottom: 20px; }
-    .summary-box { flex: 1; min-width: 200px; background: #2a2a2a; padding: 15px; border-radius: 4px; }
-    .summary-box h3 { margin-bottom: 10px; color: #fff; }
-    .summary-box p { margin-bottom: 5px; }
-    /* BARRAS DE PROGRESSO */
-    .progress-bar {
-      background-color: #4c4c4c; border-radius: 4px;
-      overflow: hidden; height: 20px; margin: 5px 0;
-    }
-    .progress-bar-fill {
-      display: block; height: 100%; background-color: #00ff7f;
-      width: 0%; transition: width 0.3s ease-in-out;
-    }
-    /* GRÁFICOS */
-    .chart-container { text-align: center; margin: 20px 0; }
-    canvas { background: #fff; border-radius: 4px; }
-    /* RODAPÉ */
-    footer { background: #2c2c2c; text-align: center; color: #fff; padding: 10px; }
-    /* CONFIGURAÇÕES: tema claro */
-    body.light-mode { background-color: #f0f0f0; color: #333; }
-    body.light-mode header, body.light-mode nav button, body.light-mode .btn-clear {
-      background: #ddd; color: #333;
-    }
-    body.light-mode form, body.light-mode .summary-box, body.light-mode table th, body.light-mode table td {
-      background: #fff; color: #333;
-    }
-    /* CHATINHO (BOT FLUTUANTE) */
-    #chatbot {
-      position: fixed; bottom: 20px; right: 20px; cursor: pointer; z-index: 1000;
-    }
-    #chatbot img {
-      width: 50px; height: 50px; border-radius: 50%; box-shadow: 0 0 10px rgba(0,0,0,0.5);
-    }
-    #chatWindow {
-      display: none; position: fixed; bottom: 80px; right: 20px; width: 300px; height: 400px;
-      background: #2a2a2a; border: 1px solid #3a3a3a; border-radius: 4px; padding: 10px; z-index: 1000;
-    }
-    #chatMessages {
-      height: 320px; overflow-y: scroll; padding: 10px; background: #333; border-radius: 4px;
-    }
-    #chatMessages p { margin: 5px 0; }
-    #chatInput { width: 100%; padding: 5px; margin-top: 10px; background: #3a3a3a; border: none; color: #fff; }
-    #chatWindow button { width: 100%; margin-top: 5px; }
-  </style>
-  <!-- Adicionando o SDK do Firebase -->
-  <script src="https://www.gstatic.com/firebasejs/8.0.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.0.0/firebase-auth.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.0.0/firebase-firestore.js"></script>
+    <meta charset="UTF-8" />
+    <title>Gerenciador Financeiro Online</title>
+    <style>
+        /* RESET E ESTILOS GERAIS */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body {
+            height: 100%;
+            font-family: Arial, sans-serif;
+            background-color: #1e1e1e;
+            color: #f0f0f0;
+        }
+        body { display: flex; flex-direction: column; }
+        /* CABEÇALHO E NAV */
+        header {
+            background: linear-gradient(160deg, #2c2c2c, #3a3a3a);
+            padding: 20px; text-align: center;
+        }
+        header h1 { font-size: 2rem; color: #fff; }
+        nav { margin-top: 15px; }
+        nav button {
+            background: #4c4c4c; border: none; color: #f0f0f0;
+            padding: 10px 15px; margin: 5px; cursor: pointer;
+            border-radius: 4px; font-weight: bold;
+        }
+        nav button:hover { background: #696969; }
+        .btn-clear {
+            padding: 10px 20px; font-size: 16px;
+            background-color: #9B59B6; border: none;
+            border-radius: 4px; color: #FFF; cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        .btn-clear:hover { opacity: 0.8; }
+        /* CONTEÚDO */
+        #container { flex: 1; padding: 20px; }
+        section { display: none; }
+        section.active { display: block; }
+        /* FORMULÁRIOS */
+        form {
+            background: #2a2a2a; padding: 20px; border-radius: 4px;
+            margin-bottom: 20px;
+        }
+        form h2 { margin-bottom: 15px; color: #fff; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%; padding: 10px; background: #3a3a3a;
+            border: none; color: #fff; border-radius: 4px;
+        }
+        .form-group input[type="number"] { -moz-appearance: textfield; }
+        .form-group textarea { resize: vertical; min-height: 70px; }
+        .form-group button, .btn { background: #4c4c4c; color: #fff; padding: 10px 20px; border: none; cursor: pointer; border-radius: 4px; font-weight: bold; margin-top: 5px; }
+        .form-group button:hover, .btn:hover { background: #696969; }
+        /* TABELAS */
+        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        table thead { background: #4c4c4c; }
+        table th, table td { padding: 12px; text-align: left; border: 1px solid #3a3a3a; }
+        table tbody tr:nth-child(odd) { background: #2a2a2a; }
+        table tbody tr:nth-child(even) { background: #333333; }
+        /* BOTÕES DE AÇÃO */
+        .action-btn {
+            background: #4c4c4c; border: none; color: #fff;
+            padding: 6px 12px; margin: 2px; cursor: pointer; border-radius: 4px;
+        }
+        .action-btn:hover { background: #696969; }
+        /* RESUMO / DASHBOARD */
+        .summary-container { display: flex; flex-wrap: wrap; gap: 20px; margin-bottom: 20px; }
+        .summary-box { flex: 1; min-width: 200px; background: #2a2a2a; padding: 15px; border-radius: 4px; }
+        .summary-box h3 { margin-bottom: 10px; color: #fff; }
+        .summary-box p { margin-bottom: 5px; }
+        /* BARRAS DE PROGRESSO */
+        .progress-bar {
+            background-color: #4c4c4c; border-radius: 4px;
+            overflow: hidden; height: 20px; margin: 5px 0;
+        }
+        .progress-bar-fill {
+            display: block; height: 100%; background-color: #00ff7f;
+            width: 0%; transition: width 0.3s ease-in-out;
+        }
+        /* GRÁFICOS */
+        .chart-container { text-align: center; margin: 20px 0; }
+        canvas { background: #fff; border-radius: 4px; }
+        /* RODAPÉ */
+        footer { background: #2c2c2c; text-align: center; color: #fff; padding: 10px; }
+        /* CONFIGURAÇÕES: tema claro */
+        body.light-mode { background-color: #f0f0f0; color: #333; }
+        body.light-mode header, body.light-mode nav button, body.light-mode .btn-clear {
+            background: #ddd; color: #333;
+        }
+        body.light-mode form, body.light-mode .summary-box, body.light-mode table th, body.light-mode table td {
+            background: #fff; color: #333;
+        }
+        /* CHATINHO (BOT FLUTUANTE) */
+        #chatbot {
+            position: fixed; bottom: 20px; right: 20px; cursor: pointer; z-index: 1000;
+        }
+        #chatbot img {
+            width: 50px; height: 50px; border-radius: 50%; box-shadow: 0 0 10px rgba(0,0,0,0.5);
+        }
+        #chatWindow {
+            display: none; position: fixed; bottom: 80px; right: 20px; width: 300px; height: 400px;
+            background: #2a2a2a; border: 1px solid #3a3a3a; border-radius: 4px; padding: 10px; z-index: 1000;
+        }
+        #chatMessages {
+            height: 320px; overflow-y: scroll; padding: 10px; background: #333; border-radius: 4px;
+        }
+        #chatMessages p { margin: 5px 0; }
+        #chatInput { width: 100%; padding: 5px; margin-top: 10px; background: #3a3a3a; border: none; color: #fff; }
+        #chatWindow button { width: 100%; margin-top: 5px; }
+    </style>
+    <!-- Adicionando o SDK do Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/8.0.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.0.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.0.0/firebase-firestore.js"></script>
 </head>
 <body>
-  <!-- Tela de login -->
-  <div id="loginForm" style="display: block; text-align: center; padding: 50px;">
-    <h2>Login - Gerenciador Financeiro</h2>
-    <div style="margin: 20px;">
-      <label for="email">Email:</label><br>
-      <input type="email" id="email" style="padding: 10px; width: 200px;" placeholder="seu@email.com"><br><br>
-      <label for="password">Senha:</label><br>
-      <input type="password" id="password" style="padding: 10px; width: 200px;" placeholder="Sua senha"><br><br>
-      <button onclick="login()" style="padding: 10px 20px; background: #4c4c4c; color: #fff; border: none; cursor: pointer;">Entrar</button>
-    </div>
-  </div>
-
-  <!-- Gerenciador financeiro (escondido até o login) -->
-  <div id="app" style="display: none;">
-    <!-- CABEÇALHO E NAVEGAÇÃO -->
-    <header>
-      <h1>Gerenciador Financeiro</h1>
-      <nav>
-        <button onclick="showSection('dashboard')">Dashboard</button>
-        <button onclick="showSection('accounts')">Contas Bancárias</button>
-        <button onclick="showSection('transactions')">Transações</button>
-        <button onclick="showSection('recurringBills')">Contas Fixas</button>
-        <button onclick="showSection('budgets')">Orçamentos</button>
-        <button onclick="showSection('goals')">Metas</button>
-        <button onclick="showSection('reports')">Relatórios</button>
-        <button onclick="showSection('annualDeclaration')">Declaração Anual</button>
-        <button onclick="showSection('statistics')">Estatísticas</button>
-        <button onclick="showSection('advancedSearch')">Busca Avançada</button>
-        <button onclick="showSection('settings')">Configurações</button>
-        <button onclick="showSection('help')">Ajuda</button>
-        <button onclick="showSection('backup')">Backup</button>
-        <button onclick="clearData()" class="btn-clear">Limpar Dados</button>
-        <button onclick="logout()">Trocar Usuário</button>
-      </nav>
-    </header>
-
-    <!-- CONTEÚDO PRINCIPAL -->
-    <div id="container">
-      <!-- DASHBOARD -->
-      <section id="dashboard" class="active">
-        <h2>Visão Geral</h2>
-        <div class="summary-container">
-          <div class="summary-box">
-            <h3>Total em Contas</h3>
-            <p id="totalEmContas">Total em Contas: R$ 0,00</p>
-          </div>
-          <div class="summary-box">
-            <h3>Contas Fixas (Mês Atual)</h3>
-            <p id="fixedBills">Contas Fixas: R$ 0,00</p>
-          </div>
-          <div class="summary-box">
-            <h3>Receitas (Mês Atual)</h3>
-            <p id="receitasMes">Receitas: R$ 0,00</p>
-          </div>
-          <div class="summary-box">
-            <h3>Gastos (Mês Atual)</h3>
-            <p id="gastosMes">Gastos: R$ 0,00</p>
-          </div>
+    <!-- Tela de login -->
+    <div id="loginForm" style="display: block; text-align: center; padding: 50px;">
+        <h2>Login - Gerenciador Financeiro</h2>
+        <div style="margin: 20px;">
+            <label for="email">Email:</label><br>
+            <input type="email" id="email" style="padding: 10px; width: 200px;" placeholder="seu@email.com"><br><br>
+            <label for="password">Senha:</label><br>
+            <input type="password" id="password" style="padding: 10px; width: 200px;" placeholder="Sua senha"><br><br>
+            <button onclick="login()" style="padding: 10px 20px; background: #4c4c4c; color: #fff; border: none; cursor: pointer;">Entrar</button>
         </div>
-        <div class="summary-box">
-          <h3>Insights Financeiros</h3>
-          <p id="insightsText">-</p>
-        </div>
-        <div class="summary-box">
-          <h3>Lembretes de Vencimento</h3>
-          <ul id="remindersList"></ul>
-        </div>
-        <button onclick="updateInsightsAndReminders()">Atualizar Informações</button>
-      </section>
-
-      <!-- CONTAS BANCÁRIAS -->
-      <section id="accounts">
-        <h2>Contas Bancárias</h2>
-        <form id="accountForm">
-          <h2>Adicionar/Editar Conta</h2>
-          <div class="form-group">
-            <label for="accountId">ID (Edição)</label>
-            <input type="text" id="accountId" readonly placeholder="Preenchido apenas em edição">
-          </div>
-          <div class="form-group">
-            <label for="bankName">Nome do Banco</label>
-            <input type="text" id="bankName" placeholder="Ex: Banco X">
-          </div>
-          <div class="form-group">
-            <label for="initialBalance">Saldo Inicial</label>
-            <input type="number" step="0.01" id="initialBalance" placeholder="Ex: 1000.00">
-          </div>
-          <div class="form-group">
-            <button type="button" onclick="saveAccount()">Salvar Conta</button>
-          </div>
-        </form>
-        <table>
-          <thead>
-            <tr><th>ID</th><th>Banco</th><th>Saldo Atual</th><th>Ações</th></tr>
-          </thead>
-          <tbody id="accountsTableBody"></tbody>
-        </table>
-      </section>
-
-      <!-- TRANSAÇÕES -->
-      <section id="transactions">
-        <h2>Transações</h2>
-        <form id="transactionForm">
-          <h2>Adicionar/Editar Transação</h2>
-          <div class="form-group">
-            <label for="transactionId">ID (Edição)</label>
-            <input type="text" id="transactionId" readonly placeholder="Preenchido apenas em edição">
-          </div>
-          <div class="form-group">
-            <label for="transactionDate">Data</label>
-            <input type="date" id="transactionDate">
-          </div>
-          <div class="form-group">
-            <label for="transactionDescription">Descrição</label>
-            <input type="text" id="transactionDescription" placeholder="Ex: Aluguel, Salário...">
-          </div>
-          <div class="form-group">
-            <label for="transactionAmount">Valor</label>
-            <input type="number" step="0.01" id="transactionAmount" placeholder="Ex: 500.00">
-          </div>
-          <div class="form-group">
-            <label for="transactionType">Tipo</label>
-            <select id="transactionType">
-              <option value="income">Receita</option>
-              <option value="expense">Despesa</option>
-              <option value="transfer">Transferência</option>
-            </select>
-          </div>
-          <div class="form-group" id="transferOptions" style="display:none;">
-            <label for="sourceAccount">Conta de Origem</label>
-            <select id="sourceAccount"></select>
-            <label for="destinationAccount">Conta de Destino</label>
-            <select id="destinationAccount"></select>
-          </div>
-          <div class="form-group" id="transactionBankGroup">
-            <label for="transactionBank">Conta Bancária</label>
-            <select id="transactionBank"></select>
-          </div>
-          <div class="form-group">
-            <label for="transactionTags">Tags (opcional)</label>
-            <input type="text" id="transactionTags" placeholder="Ex: casa, supermercado...">
-          </div>
-          <div class="form-group">
-            <button type="button" onclick="saveTransaction()">Salvar Transação</button>
-          </div>
-        </form>
-        <div id="transactionFilter">
-          <h3>Filtro de Transações</h3>
-          <div class="form-group">
-            <label for="filterType">Tipo de Filtro</label>
-            <select id="filterType">
-              <option value="all">Todas</option>
-              <option value="income">Receitas</option>
-              <option value="expense">Despesas</option>
-              <option value="transfer">Transferências</option>
-              <option value="dateRange">Período Específico</option>
-            </select>
-          </div>
-          <div class="form-group" id="dateRangeGroup" style="display:none;">
-            <label for="startDate">Data Início</label>
-            <input type="date" id="startDate">
-            <label for="endDate">Data Fim</label>
-            <input type="date" id="endDate">
-          </div>
-          <div class="form-group">
-            <button type="button" onclick="filterTransactions()">Filtrar</button>
-          </div>
-        </div>
-        <table>
-          <thead>
-            <tr>
-              <th>ID</th><th>Data</th><th>Descrição</th><th>Valor</th><th>Tipo</th><th>Conta</th><th>Tags</th><th>Ações</th>
-            </tr>
-          </thead>
-          <tbody id="transactionsTableBody"></tbody>
-        </table>
-      </section>
-
-      <!-- CONTAS FIXAS -->
-      <section id="recurringBills">
-        <h2>Contas Fixas</h2>
-        <form id="recurringBillForm">
-          <h2>Adicionar/Editar Conta Fixa</h2>
-          <div class="form-group">
-            <label for="recurringId">ID (Edição)</label>
-            <input type="text" id="recurringId" readonly placeholder="Preenchido apenas em edição">
-          </div>
-          <div class="form-group">
-            <label for="recurringDescription">Descrição</label>
-            <input type="text" id="recurringDescription" placeholder="Ex: Aluguel, Energia, Internet...">
-          </div>
-          <div class="form-group">
-            <label for="recurringAmount">Valor</label>
-            <input type="number" step="0.01" id="recurringAmount" placeholder="Ex: 250.00">
-          </div>
-          <div class="form-group">
-            <label for="recurringDueDay">Dia de Vencimento</label>
-            <input type="number" id="recurringDueDay" placeholder="Ex: 10">
-          </div>
-          <div class="form-group">
-            <label for="recurringBank">Conta Bancária (opcional)</label>
-            <select id="recurringBank"></select>
-          </div>
-          <div class="form-group">
-            <button type="button" onclick="saveRecurringBill()">Salvar Conta Fixa</button>
-          </div>
-        </form>
-        <table>
-          <thead>
-            <tr><th>ID</th><th>Descrição</th><th>Valor</th><th>Dia</th><th>Conta Vinculada</th><th>Ações</th></tr>
-          </thead>
-          <tbody id="recurringBillsTableBody"></tbody>
-        </table>
-      </section>
-
-      <!-- ORÇAMENTOS -->
-      <section id="budgets">
-        <h2>Orçamentos</h2>
-        <form id="budgetForm">
-          <h2>Adicionar/Editar Orçamento</h2>
-          <div class="form-group">
-            <label for="budgetId">ID (Edição)</label>
-            <input type="text" id="budgetId" readonly placeholder="Preenchido apenas em edição">
-          </div>
-          <div class="form-group">
-            <label for="budgetCategory">Categoria</label>
-            <input type="text" id="budgetCategory" placeholder="Ex: Alimentação, Lazer, Transporte...">
-          </div>
-          <div class="form-group">
-            <label for="budgetLimit">Limite (R$)</label>
-            <input type="number" step="0.01" id="budgetLimit" placeholder="Ex: 500.00">
-          </div>
-          <div class="form-group">
-            <button type="button" onclick="saveBudget()">Salvar Orçamento</button>
-          </div>
-        </form>
-        <div id="budgetList"></div>
-      </section>
-
-      <!-- METAS -->
-      <section id="goals">
-        <h2>Metas</h2>
-        <form id="goalForm">
-          <h2>Adicionar/Editar Meta</h2>
-          <div class="form-group">
-            <label for="goalId">ID (Edição)</label>
-            <input type="text" id="goalId" readonly placeholder="Preenchido apenas em edição">
-          </div>
-          <div class="form-group">
-            <label for="goalName">Nome da Meta</label>
-            <input type="text" id="goalName" placeholder="Ex: Viagem, Carro, Casa...">
-          </div>
-          <div class="form-group">
-            <label for="goalTarget">Valor Alvo (R$)</label>
-            <input type="number" step="0.01" id="goalTarget" placeholder="Ex: 10000.00">
-          </div>
-          <div class="form-group">
-            <label for="goalDeadline">Prazo (opcional)</label>
-            <input type="date" id="goalDeadline">
-          </div>
-          <div class="form-group">
-            <button type="button" onclick="saveGoal()">Salvar Meta</button>
-          </div>
-        </form>
-        <div id="goalsList"></div>
-      </section>
-
-      <!-- RELATÓRIOS -->
-      <section id="reports">
-        <h2>Relatórios</h2>
-        <form id="reportForm">
-          <h2>Gerar Relatório Mensal</h2>
-          <div class="form-group">
-            <label for="reportMonth">Mês</label>
-            <input type="month" id="reportMonth">
-          </div>
-          <div class="form-group">
-            <button type="button" onclick="generateMonthlyReport()">Gerar Relatório</button>
-          </div>
-        </form>
-        <div id="reportContent"></div>
-      </section>
-
-      <!-- DECLARAÇÃO ANUAL -->
-      <section id="annualDeclaration">
-        <h2>Declaração Anual do MEI</h2>
-        <form id="annualDeclarationForm">
-          <div class="form-group">
-            <label for="declarationYear">Ano</label>
-            <input type="number" id="declarationYear" placeholder="Ex: 2025">
-          </div>
-          <div class="form-group">
-            <label for="declarationBank">Filtrar por Banco</label>
-            <select id="declarationBank">
-              <option value="all">Todos</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <button type="button" onclick="generateAnnualDeclaration()">Gerar Declaração Anual</button>
-          </div>
-        </form>
-        <div id="annualReportContent"></div>
-      </section>
-
-      <!-- ESTATÍSTICAS (GRÁFICOS) -->
-      <section id="statistics">
-        <h2>Estatísticas</h2>
-        <div class="chart-container">
-          <h3>Receitas vs. Gastos (Mês Atual)</h3>
-          <canvas id="pieChart" width="300" height="300"></canvas>
-        </div>
-        <div class="chart-container">
-          <h3>Evolução Mensal (Ano Atual)</h3>
-          <canvas id="barChart" width="500" height="300"></canvas>
-        </div>
-        <button type="button" onclick="drawCharts()">Atualizar Gráficos</button>
-      </section>
-
-      <!-- BUSCA AVANÇADA -->
-      <section id="advancedSearch">
-        <h2>Busca Avançada em Transações</h2>
-        <form id="searchForm">
-          <div class="form-group">
-            <label for="searchStartDate">Data Início</label>
-            <input type="date" id="searchStartDate">
-          </div>
-          <div class="form-group">
-            <label for="searchEndDate">Data Fim</label>
-            <input type="date" id="searchEndDate">
-          </div>
-          <div class="form-group">
-            <label for="searchText">Texto (Descrição/Tags)</label>
-            <input type="text" id="searchText" placeholder="Digite o termo de busca">
-          </div>
-          <div class="form-group">
-            <button type="button" onclick="advancedSearch()">Buscar</button>
-          </div>
-        </form>
-        <table>
-          <thead>
-            <tr>
-              <th>ID</th><th>Data</th><th>Descrição</th><th>Valor</th><th>Tipo</th><th>Conta</th><th>Tags</th>
-            </tr>
-          </thead>
-          <tbody id="searchResults"></tbody>
-        </table>
-      </section>
-
-      <!-- CONFIGURAÇÕES -->
-      <section id="settings">
-        <h2>Configurações</h2>
-        <div class="form-group">
-          <button type="button" onclick="toggleTheme()">Alternar Tema (Escuro/Claro)</button>
-        </div>
-        <div class="form-group">
-          <label for="currencySymbol">Símbolo da Moeda</label>
-          <input type="text" id="currencySymbol" placeholder="Ex: R$" value="R$">
-        </div>
-        <div class="form-group">
-          <label for="closingDay">Dia de Fechamento do Mês</label>
-          <input type="number" id="closingDay" min="1" max="31" value="1">
-        </div>
-        <div class="form-group">
-          <button type="button" onclick="applySettings()">Aplicar Configurações</button>
-        </div>
-        <div class="form-group">
-          <h3>Exportar Transações para CSV</h3>
-          <button type="button" onclick="exportCSV()">Exportar CSV</button>
-        </div>
-        <div class="form-group">
-          <h3>Importar Transações de CSV</h3>
-          <input type="file" id="csvFile" accept=".csv">
-          <button type="button" onclick="importCSV()">Importar CSV</button>
-        </div>
-      </section>
-
-      <!-- AJUDA -->
-      <section id="help">
-        <h2>Ajuda - Guia do Programa</h2>
-        <ul>
-          <li><strong>Chatinho:</strong> Use o bot flutuante para perguntas ou registrar dados automaticamente (ex.: "Adicionar transação: 500 reais, aluguel, despesa, dia 10/10/2023, banco X").</li>
-          <li><strong>Contas Bancárias:</strong> Cadastre suas contas. O saldo atual é calculado a partir do saldo inicial mais as transações.</li>
-          <li><strong>Transações:</strong> Registre receitas, despesas e transferências. O saldo das contas é atualizado automaticamente.</li>
-          <li><strong>Contas Fixas:</strong> Adicione contas fixas e pague-as diretamente, gerando uma transação de despesa.</li>
-          <li><strong>Orçamentos:</strong> Defina limites para categorias e acompanhe o consumo mensal.</li>
-          <li><strong>Metas:</strong> Crie metas financeiras e acompanhe seu progresso.</li>
-          <li><strong>Relatórios:</strong> Gere relatórios mensais detalhados.</li>
-          <li><strong>Declaração Anual:</strong> Gere um relatório anual para seu MEI.</li>
-          <li><strong>Estatísticas:</strong> Veja gráficos de receitas vs. gastos e evolução mensal.</li>
-          <li><strong>Busca Avançada:</strong> Filtre transações por data e texto.</li>
-          <li><strong>Configurações:</strong> Altere tema, moeda, dia de fechamento e exporte/importe transações.</li>
-          <li><strong>Backup:</strong> Gere e restaure backups dos seus dados.</li>
-          <li><strong>Limpar Dados:</strong> Apaga todos os dados armazenados.</li>
-        </ul>
-      </section>
-
-      <!-- BACKUP -->
-      <section id="backup">
-        <h2>Backup e Restauração</h2>
-        <div class="form-group">
-          <h3>Gerar Backup</h3>
-          <textarea id="backupData" readonly style="width:100%; height:150px;"></textarea>
-          <button type="button" onclick="generateBackup()">Gerar Backup</button>
-          <button type="button" onclick="copyBackup()">Copiar Backup</button>
-        </div>
-        <div class="form-group">
-          <h3>Restaurar Backup</h3>
-          <textarea id="restoreData" placeholder="Cole o backup aqui" style="width:100%; height:150px;"></textarea>
-          <button type="button" onclick="restoreBackup()">Restaurar Backup</button>
-        </div>
-      </section>
     </div>
 
-    <!-- RODAPÉ -->
-    <footer>
-      <p>Gerenciador Financeiro © 2025</p>
-    </footer>
+    <!-- Gerenciador financeiro (escondido até o login) -->
+    <div id="app" style="display: none;">
+        <!-- CABEÇALHO E NAVEGAÇÃO -->
+        <header>
+            <h1>Gerenciador Financeiro</h1>
+            <nav>
+                <button onclick="showSection('dashboard')">Dashboard</button>
+                <button onclick="showSection('accounts')">Contas Bancárias</button>
+                <button onclick="showSection('transactions')">Transações</button>
+                <button onclick="showSection('recurringBills')">Contas Fixas</button>
+                <button onclick="showSection('budgets')">Orçamentos</button>
+                <button onclick="showSection('goals')">Metas</button>
+                <button onclick="showSection('reports')">Relatórios</button>
+                <button onclick="showSection('annualDeclaration')">Declaração Anual</button>
+                <button onclick="showSection('statistics')">Estatísticas</button>
+                <button onclick="showSection('advancedSearch')">Busca Avançada</button>
+                <button onclick="showSection('settings')">Configurações</button>
+                <button onclick="showSection('help')">Ajuda</button>
+                <button onclick="showSection('backup')">Backup</button>
+                <button onclick="clearData()" class="btn-clear">Limpar Dados</button>
+                <button onclick="logout()">Trocar Usuário</button>
+            </nav>
+        </header>
 
-    <!-- CHATINHO (BOT FLUTUANTE) -->
-    <div id="chatbot">
-      <img src="https://img.icons8.com/emoji/48/000000/robot-emoji.png" alt="Chatinho">
-    </div>
-    <div id="chatWindow">
-      <div id="chatMessages">
-        <p><strong>Chatinho:</strong> Oi! Eu sou o Chatinho, seu ajudante financeiro. Pergunte algo ou me diga o que registrar!</p>
-      </div>
-      <input type="text" id="chatInput" placeholder="Digite aqui...">
-      <button onclick="sendMessage()">Enviar</button>
-    </div>
+        <!-- CONTEÚDO PRINCIPAL -->
+        <div id="container">
+            <!-- DASHBOARD -->
+            <section id="dashboard" class="active">
+                <h2>Visão Geral</h2>
+                <div class="summary-container">
+                    <div class="summary-box">
+                        <h3>Total em Contas</h3>
+                        <p id="totalEmContas">Total em Contas: R$ 0,00</p>
+                    </div>
+                    <div class="summary-box">
+                        <h3>Contas Fixas (Mês Atual)</h3>
+                        <p id="fixedBills">Contas Fixas: R$ 0,00</p>
+                    </div>
+                    <div class="summary-box">
+                        <h3>Receitas (Mês Atual)</h3>
+                        <p id="receitasMes">Receitas: R$ 0,00</p>
+                    </div>
+                    <div class="summary-box">
+                        <h3>Gastos (Mês Atual)</h3>
+                        <p id="gastosMes">Gastos: R$ 0,00</p>
+                    </div>
+                </div>
+                <div class="summary-box">
+                    <h3>Insights Financeiros</h3>
+                    <p id="insightsText">-</p>
+                </div>
+                <div class="summary-box">
+                    <h3>Lembretes de Vencimento</h3>
+                    <ul id="remindersList"></ul>
+                </div>
+                <button onclick="updateInsightsAndReminders()">Atualizar Informações</button>
+            </section>
 
-    <script>
-      // Configuração do Firebase
-      const firebaseConfig = {
-        apiKey: "AIzaSyBVCtmkrtBtVl3A4xcYxckHFFa_eHxiQ0w",
-        authDomain: "gerenciador-financeiro-6d8c2.firebaseapp.com",
-        projectId: "gerenciador-financeiro-6d8c2",
-        storageBucket: "gerenciador-financeiro-6d8c2.appspot.com",
-        messagingSenderId: "693980228824",
-        appId: "1:693980228824:web:d183b4b3f61978f2c83bad"
-      };
-      firebase.initializeApp(firebaseConfig);
-      const db = firebase.firestore();
+            <!-- CONTAS BANCÁRIAS -->
+            <section id="accounts">
+                <h2>Contas Bancárias</h2>
+                <form id="accountForm">
+                    <h2>Adicionar/Editar Conta</h2>
+                    <div class="form-group">
+                        <label for="accountId">ID (Edição)</label>
+                        <input type="text" id="accountId" readonly placeholder="Preenchido apenas em edição">
+                    </div>
+                    <div class="form-group">
+                        <label for="bankName">Nome do Banco</label>
+                        <input type="text" id="bankName" placeholder="Ex: Banco X">
+                    </div>
+                    <div class="form-group">
+                        <label for="initialBalance">Saldo Inicial</label>
+                        <input type="number" step="0.01" id="initialBalance" placeholder="Ex: 1000.00">
+                    </div>
+                    <div class="form-group">
+                        <button type="button" onclick="saveAccount()">Salvar Conta</button>
+                    </div>
+                </form>
+                <table>
+                    <thead>
+                        <tr><th>ID</th><th>Banco</th><th>Saldo Atual</th><th>Ações</th></tr>
+                    </thead>
+                    <tbody id="accountsTableBody"></tbody>
+                </table>
+            </section>
 
-      // Função de login
-      function login() {
-        var email = document.getElementById('email').value;
-        var password = document.getElementById('password').value;
-        firebase.auth().signInWithEmailAndPassword(email, password)
-          .then((userCredential) => {
-            document.getElementById('loginForm').style.display = 'none';
-            document.getElementById('app').style.display = 'block';
-          })
-          .catch((error) => {
-            alert('Erro: ' + error.message);
-          });
-      }
+            <!-- TRANSAÇÕES -->
+            <section id="transactions">
+                <h2>Transações</h2>
+                <form id="transactionForm">
+                    <h2>Adicionar/Editar Transação</h2>
+                    <div class="form-group">
+                        <label for="transactionId">ID (Edição)</label>
+                        <input type="text" id="transactionId" readonly placeholder="Preenchido apenas em edição">
+                    </div>
+                    <div class="form-group">
+                        <label for="transactionDate">Data</label>
+                        <input type="date" id="transactionDate">
+                    </div>
+                    <div class="form-group">
+                        <label for="transactionDescription">Descrição</label>
+                        <input type="text" id="transactionDescription" placeholder="Ex: Aluguel, Salário...">
+                    </div>
+                    <div class="form-group">
+                        <label for="transactionAmount">Valor</label>
+                        <input type="number" step="0.01" id="transactionAmount" placeholder="Ex: 500.00">
+                    </div>
+                    <div class="form-group">
+                        <label for="transactionType">Tipo</label>
+                        <select id="transactionType">
+                            <option value="income">Receita</option>
+                            <option value="expense">Despesa</option>
+                            <option value="transfer">Transferência</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="transferOptions" style="display:none;">
+                        <label for="sourceAccount">Conta de Origem</label>
+                        <select id="sourceAccount"></select>
+                        <label for="destinationAccount">Conta de Destino</label>
+                        <select id="destinationAccount"></select>
+                    </div>
+                    <div class="form-group" id="transactionBankGroup">
+                        <label for="transactionBank">Conta Bancária</label>
+                        <select id="transactionBank"></select>
+                    </div>
+                    <div class="form-group">
+                        <label for="transactionTags">Tags (opcional)</label>
+                        <input type="text" id="transactionTags" placeholder="Ex: casa, supermercado...">
+                    </div>
+                    <div class="form-group">
+                        <button type="button" onclick="saveTransaction()">Salvar Transação</button>
+                    </div>
+                </form>
+                <div id="transactionFilter">
+                    <h3>Filtro de Transações</h3>
+                    <div class="form-group">
+                        <label for="filterType">Tipo de Filtro</label>
+                        <select id="filterType">
+                            <option value="all">Todas</option>
+                            <option value="income">Receitas</option>
+                            <option value="expense">Despesas</option>
+                            <option value="transfer">Transferências</option>
+                            <option value="dateRange">Período Específico</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="dateRangeGroup" style="display:none;">
+                        <label for="startDate">Data Início</label>
+                        <input type="date" id="startDate">
+                        <label for="endDate">Data Fim</label>
+                        <input type="date" id="endDate">
+                    </div>
+                    <div class="form-group">
+                        <button type="button" onclick="filterTransactions()">Filtrar</button>
+                    </div>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th><th>Data</th><th>Descrição</th><th>Valor</th><th>Tipo</th><th>Conta</th><th>Tags</th><th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="transactionsTableBody"></tbody>
+                </table>
+            </section>
 
-      function logout() {
-        firebase.auth().signOut().then(() => {
-          document.getElementById('app').style.display = 'none';
-          document.getElementById('loginForm').style.display = 'block';
-        }).catch((error) => {
-          alert("Erro ao fazer logout: " + error.message);
-        });
-      }
+            <!-- CONTAS FIXAS -->
+            <section id="recurringBills">
+                <h2>Contas Fixas</h2>
+                <form id="recurringBillForm">
+                    <h2>Adicionar/Editar Conta Fixa</h2>
+                    <div class="form-group">
+                        <label for="recurringId">ID (Edição)</label>
+                        <input type="text" id="recurringId" readonly placeholder="Preenchido apenas em edição">
+                    </div>
+                    <div class="form-group">
+                        <label for="recurringDescription">Descrição</label>
+                        <input type="text" id="recurringDescription" placeholder="Ex: Aluguel, Energia, Internet...">
+                    </div>
+                    <div class="form-group">
+                        <label for="recurringAmount">Valor</label>
+                        <input type="number" step="0.01" id="recurringAmount" placeholder="Ex: 250.00">
+                    </div>
+                    <div class="form-group">
+                        <label for="recurringDueDay">Dia de Vencimento</label>
+                        <input type="number" id="recurringDueDay" placeholder="Ex: 10">
+                    </div>
+                    <div class="form-group">
+                        <label for="recurringBank">Conta Bancária (opcional)</label>
+                        <select id="recurringBank"></select>
+                    </div>
+                    <div class="form-group">
+                        <button type="button" onclick="saveRecurringBill()">Salvar Conta Fixa</button>
+                    </div>
+                </form>
+                <table>
+                    <thead>
+                        <tr><th>ID</th><th>Descrição</th><th>Valor</th><th>Dia</th><th>Conta Vinculada</th><th>Ações</th></tr>
+                    </thead>
+                    <tbody id="recurringBillsTableBody"></tbody>
+                </table>
+            </section>
 
-      firebase.auth().onAuthStateChanged((user) => {
-        if (user) {
-          document.getElementById('loginForm').style.display = 'none';
-          document.getElementById('app').style.display = 'block';
-          loadDataFromFirestore();
-        } else {
-          document.getElementById('loginForm').style.display = 'block';
-          document.getElementById('app').style.display = 'none';
-        }
-      });
+            <!-- ORÇAMENTOS -->
+            <section id="budgets">
+                <h2>Orçamentos</h2>
+                <form id="budgetForm">
+                    <h2>Adicionar/Editar Orçamento</h2>
+                    <div class="form-group">
+                        <label for="budgetId">ID (Edição)</label>
+                        <input type="text" id="budgetId" readonly placeholder="Preenchido apenas em edição">
+                    </div>
+                    <div class="form-group">
+                        <label for="budgetCategory">Categoria</label>
+                        <input type="text" id="budgetCategory" placeholder="Ex: Alimentação, Lazer, Transporte...">
+                    </div>
+                    <div class="form-group">
+                        <label for="budgetLimit">Limite (R$)</label>
+                        <input type="number" step="0.01" id="budgetLimit" placeholder="Ex: 500.00">
+                    </div>
+                    <div class="form-group">
+                        <button type="button" onclick="saveBudget()">Salvar Orçamento</button>
+                    </div>
+                </form>
+                <div id="budgetList"></div>
+            </section>
 
-      /****************************
-       * ESTRUTURA DE DADOS
-       ****************************/
-      let data = {
-        accounts: [],
-        transactions: [],
-        recurringBills: [],
-        budgets: [],
-        goals: []
-      };
-      let settings = {
-        currencySymbol: "R$",
-        theme: "dark",
-        closingDay: 1
-      };
+            <!-- METAS -->
+            <section id="goals">
+                <h2>Metas</h2>
+                <form id="goalForm">
+                    <h2>Adicionar/Editar Meta</h2>
+                    <div class="form-group">
+                        <label for="goalId">ID (Edição)</label>
+                        <input type="text" id="goalId" readonly placeholder="Preenchido apenas em edição">
+                    </div>
+                    <div class="form-group">
+                        <label for="goalName">Nome da Meta</label>
+                        <input type="text" id="goalName" placeholder="Ex: Viagem, Carro, Casa...">
+                    </div>
+                    <div class="form-group">
+                        <label for="goalTarget">Valor Alvo (R$)</label>
+                        <input type="number" step="0.01" id="goalTarget" placeholder="Ex: 10000.00">
+                    </div>
+                    <div class="form-group">
+                        <label for="goalDeadline">Prazo (opcional)</label>
+                        <input type="date" id="goalDeadline">
+                    </div>
+                    <div class="form-group">
+                        <button type="button" onclick="saveGoal()">Salvar Meta</button>
+                    </div>
+                </form>
+                <div id="goalsList"></div>
+            </section>
 
-      function getUserId() {
-        const user = firebase.auth().currentUser;
-        return user ? user.uid : null;
-      }
+            <!-- RELATÓRIOS -->
+            <section id="reports">
+                <h2>Relatórios</h2>
+                <form id="reportForm">
+                    <h2>Gerar Relatório Mensal</h2>
+                    <div class="form-group">
+                        <label for="reportMonth">Mês</label>
+                        <input type="month" id="reportMonth">
+                    </div>
+                    <div class="form-group">
+                        <button type="button" onclick="generateMonthlyReport()">Gerar Relatório</button>
+                    </div>
+                </form>
+                <div id="reportContent"></div>
+            </section>
 
-      async function loadDataFromFirestore() {
-        const userId = getUserId();
-        if (!userId) return;
-        try {
-          const doc = await db.collection('users').doc(userId).get();
-          if (doc.exists) {
-            data = doc.data();
-          } else {
-            data = { accounts: [], transactions: [], recurringBills: [], budgets: [], goals: [] };
-            await db.collection('users').doc(userId).set(data);
-          }
-          const storedSettings = localStorage.getItem("financialManagerSettings");
-          if (storedSettings) settings = JSON.parse(storedSettings);
-          init();
-        } catch (error) {
-          alert("Erro ao carregar dados do Firestore.");
-        }
-      }
+            <!-- DECLARAÇÃO ANUAL -->
+            <section id="annualDeclaration">
+                <h2>Declaração Anual do MEI</h2>
+                <form id="annualDeclarationForm">
+                    <div class="form-group">
+                        <label for="declarationYear">Ano</label>
+                        <input type="number" id="declarationYear" placeholder="Ex: 2025">
+                    </div>
+                    <div class="form-group">
+                        <label for="declarationBank">Filtrar por Banco</label>
+                        <select id="declarationBank">
+                            <option value="all">Todos</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <button type="button" onclick="generateAnnualDeclaration()">Gerar Declaração Anual</button>
+                    </div>
+                </form>
+                <div id="annualReportContent"></div>
+            </section>
 
-      async function saveDataToFirestore() {
-        const userId = getUserId();
-        if (!userId) return;
-        try {
-          await db.collection('users').doc(userId).set(data);
-          localStorage.setItem("financialManagerSettings", JSON.stringify(settings));
-          updateAllSections();
-        } catch (error) {
-          alert("Erro ao salvar dados no Firestore.");
-        }
-      }
+            <!-- ESTATÍSTICAS (GRÁFICOS) -->
+            <section id="statistics">
+                <h2>Estatísticas</h2>
+                <div class="chart-container">
+                    <h3>Receitas vs. Gastos (Mês Atual)</h3>
+                    <canvas id="pieChart" width="300" height="300"></canvas>
+                </div>
+                <div class="chart-container">
+                    <h3>Evolução Mensal (Ano Atual)</h3>
+                    <canvas id="barChart" width="500" height="300"></canvas>
+                </div>
+                <button type="button" onclick="drawCharts()">Atualizar Gráficos</button>
+            </section>
 
-      /****************************
-       * UTILITÁRIOS
-       ****************************/
-      function generateId(prefix = "id") { return prefix + "_" + Math.random().toString(36).substring(2, 9); }
-      function formatCurrency(value) {
-        if (isNaN(value)) value = 0;
-        return settings.currencySymbol + " " + value.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-      }
-      function formatMonthYear(date) {
-        const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
-        return monthNames[date.getMonth()] + "/" + date.getFullYear();
-      }
-      function showSection(id) {
-        document.querySelectorAll("section").forEach(sec => sec.classList.remove("active"));
-        document.getElementById(id).classList.add("active");
-        if (id === "statistics") drawCharts();
-      }
+            <!-- BUSCA AVANÇADA -->
+            <section id="advancedSearch">
+                <h2>Busca Avançada em Transações</h2>
+                <form id="searchForm">
+                    <div class="form-group">
+                        <label for="searchStartDate">Data Início</label>
+                        <input type="date" id="searchStartDate">
+                    </div>
+                    <div class="form-group">
+                        <label for="searchEndDate">Data Fim</label>
+                        <input type="date" id="searchEndDate">
+                    </div>
+                    <div class="form-group">
+                        <label for="searchText">Texto (Descrição/Tags)</label>
+                        <input type="text" id="searchText" placeholder="Digite o termo de busca">
+                    </div>
+                    <div class="form-group">
+                        <button type="button" onclick="advancedSearch()">Buscar</button>
+                    </div>
+                </form>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th><th>Data</th><th>Descrição</th><th>Valor</th><th>Tipo</th><th>Conta</th><th>Tags</th>
+                        </tr>
+                    </thead>
+                    <tbody id="searchResults"></tbody>
+                </table>
+            </section>
 
-      /****************************
-       * SINCRONIZAÇÃO DE CONTAS
-       ****************************/
-      function updateAccountBalances() {
-        data.accounts.forEach(account => {
-          let balance = account.initialBalance || 0;
-          data.transactions.forEach(t => {
-            if (t.type === "income" && t.bankId === account.id) {
-              balance += t.amount;
-            } else if (t.type === "expense" && t.bankId === account.id) {
-              balance -= t.amount;
-            } else if (t.type === "transfer") {
-              if (t.sourceAccount === account.id) {
-                balance -= t.amount;
-              } else if (t.destinationAccount === account.id) {
-                balance += t.amount;
-              }
-            }
-          });
-          account.currentBalance = balance;
-        });
-      }
+            <!-- CONFIGURAÇÕES -->
+            <section id="settings">
+                <h2>Configurações</h2>
+                <div class="form-group">
+                    <button type="button" onclick="toggleTheme()">Alternar Tema (Escuro/Claro)</button>
+                </div>
+                <div class="form-group">
+                    <label for="currencySymbol">Símbolo da Moeda</label>
+                    <input type="text" id="currencySymbol" placeholder="Ex: R$" value="R$">
+                </div>
+                <div class="form-group">
+                    <label for="closingDay">Dia de Fechamento do Mês</label>
+                    <input type="number" id="closingDay" min="1" max="31" value="1">
+                </div>
+                <div class="form-group">
+                    <button type="button" onclick="applySettings()">Aplicar Configurações</button>
+                </div>
+                <div class="form-group">
+                    <h3>Exportar Transações para CSV</h3>
+                    <button type="button" onclick="exportCSV()">Exportar CSV</button>
+                </div>
+                <div class="form-group">
+                    <h3>Importar Transações de CSV</h3>
+                    <input type="file" id="csvFile" accept=".csv">
+                    <button type="button" onclick="importCSV()">Importar CSV</button>
+                </div>
+            </section>
 
-      function updateAllSections() {
-        updateAccountBalances();
-        renderAccounts();
-        renderTransactions();
-        renderRecurringBills();
-        renderBudgets();
-        renderGoals();
-        updateDashboard();
-        updateDeclarationBankOptions();
-      }
+            <!-- AJUDA -->
+            <section id="help">
+                <h2>Ajuda - Guia do Programa</h2>
+                <ul>
+                    <li><strong>Chatinho:</strong> Use o bot flutuante para perguntas ou registrar dados automaticamente (ex.: "Adicionar transação: 500 reais, aluguel, despesa, dia 10/10/2023, banco X").</li>
+                    <li><strong>Contas Bancárias:</strong> Cadastre suas contas. O saldo atual é calculado a partir do saldo inicial mais as transações.</li>
+                    <li><strong>Transações:</strong> Registre receitas, despesas e transferências. O saldo das contas é atualizado automaticamente.</li>
+                    <li><strong>Contas Fixas:</strong> Adicione contas fixas e pague-as diretamente, gerando uma transação de despesa.</li>
+                    <li><strong>Orçamentos:</strong> Defina limites para categorias e acompanhe o consumo mensal.</li>
+                    <li><strong>Metas:</strong> Crie metas financeiras e acompanhe seu progresso.</li>
+                    <li><strong>Relatórios:</strong> Gere relatórios mensais detalhados.</li>
+                    <li><strong>Declaração Anual:</strong> Gere um relatório anual para seu MEI.</li>
+                    <li><strong>Estatísticas:</strong> Veja gráficos de receitas vs. gastos e evolução mensal.</li>
+                    <li><strong>Busca Avançada:</strong> Filtre transações por data e texto.</li>
+                    <li><strong>Configurações:</strong> Altere tema, moeda, dia de fechamento e exporte/importe transações.</li>
+                    <li><strong>Backup:</strong> Gere e restaure backups dos seus dados.</li>
+                    <li><strong>Limpar Dados:</strong> Apaga todos os dados armazenados.</li>
+                </ul>
+            </section>
 
-      /****************************
-       * CONTAS BANCÁRIAS
-       ****************************/
-      function renderAccounts() {
-        const tbody = document.getElementById("accountsTableBody");
-        tbody.innerHTML = "";
-        data.accounts.forEach(account => {
-          const tr = document.createElement("tr");
-          tr.innerHTML = `<td>${account.id}</td>
-                          <td>${account.name}</td>
-                          <td>${formatCurrency(account.currentBalance)}</td>
-                          <td>
-                            <button class="action-btn" onclick="editAccount('${account.id}')">Editar</button>
-                            <button class="action-btn" onclick="deleteAccount('${account.id}')">Deletar</button>
-                          </td>`;
-          tbody.appendChild(tr);
-        });
-        const selTrans = document.getElementById("transactionBank");
-        const selSource = document.getElementById("sourceAccount");
-        const selDest = document.getElementById("destinationAccount");
-        if (selTrans) {
-          selTrans.innerHTML = "";
-          data.accounts.forEach(acc => {
-            let opt = document.createElement("option");
-            opt.value = acc.id; opt.textContent = acc.name;
-            selTrans.appendChild(opt);
-          });
-        }
-        if (selSource) {
-          selSource.innerHTML = "";
-          data.accounts.forEach(acc => {
-            let opt = document.createElement("option");
-            opt.value = acc.id; opt.textContent = acc.name;
-            selSource.appendChild(opt);
-          });
-        }
-        if (selDest) {
-          selDest.innerHTML = "";
-          data.accounts.forEach(acc => {
-            let opt = document.createElement("option");
-            opt.value = acc.id; opt.textContent = acc.name;
-            selDest.appendChild(opt);
-          });
-        }
-        const selRec = document.getElementById("recurringBank");
-        if (selRec) {
-          selRec.innerHTML = "";
-          let emptyOpt = document.createElement("option");
-          emptyOpt.value = ""; emptyOpt.textContent = "Nenhuma (pagamento manual)";
-          selRec.appendChild(emptyOpt);
-          data.accounts.forEach(acc => {
-            let opt = document.createElement("option");
-            opt.value = acc.id; opt.textContent = acc.name;
-            selRec.appendChild(opt);
-          });
-        }
-      }
-      function saveAccount() {
-        const idField = document.getElementById("accountId");
-        const bankName = document.getElementById("bankName").value.trim();
-        const initialBal = parseFloat(document.getElementById("initialBalance").value);
-        if (!bankName) { alert("Informe o nome do banco."); return; }
-        if (isNaN(initialBal)) { alert("Informe um saldo válido."); return; }
-        if (!idField.value) {
-          data.accounts.push({ id: generateId("acc"), name: bankName, initialBalance: initialBal, currentBalance: initialBal });
-        } else {
-          let acc = data.accounts.find(a => a.id === idField.value);
-          if (acc) { acc.name = bankName; acc.initialBalance = initialBal; }
-        }
-        idField.value = ""; document.getElementById("bankName").value = ""; document.getElementById("initialBalance").value = "";
-        saveDataToFirestore();
-        alert("Conta salva com sucesso!");
-      }
-      function editAccount(id) {
-        let acc = data.accounts.find(a => a.id === id);
-        if (acc) {
-          document.getElementById("accountId").value = acc.id;
-          document.getElementById("bankName").value = acc.name;
-          document.getElementById("initialBalance").value = acc.initialBalance;
-          showSection("accounts");
-        }
-      }
-      function deleteAccount(id) {
-        if (!confirm("Confirma exclusão desta conta?")) return;
-        if (data.transactions.some(t => t.bankId === id || (t.type === "transfer" && (t.sourceAccount === id || t.destinationAccount === id))) || data.recurringBills.some(rb => rb.bankId === id)) {
-          alert("Não é possível excluir: há transações ou contas fixas vinculadas.");
-          return;
-        }
-        data.accounts = data.accounts.filter(a => a.id !== id);
-        saveDataToFirestore();
-      }
+            <!-- BACKUP -->
+            <section id="backup">
+                <h2>Backup e Restauração</h2>
+                <div class="form-group">
+                    <h3>Gerar Backup</h3>
+                    <textarea id="backupData" readonly style="width:100%; height:150px;"></textarea>
+                    <button type="button" onclick="generateBackup()">Gerar Backup</button>
+                    <button type="button" onclick="copyBackup()">Copiar Backup</button>
+                </div>
+                <div class="form-group">
+                    <h3>Restaurar Backup</h3>
+                    <textarea id="restoreData" placeholder="Cole o backup aqui" style="width:100%; height:150px;"></textarea>
+                    <button type="button" onclick="restoreBackup()">Restaurar Backup</button>
+                </div>
+            </section>
+        </div>
 
-      /****************************
-       * TRANSAÇÕES
-       ****************************/
-      function renderTransactions(filteredTransactions = null) {
-        const tbody = document.getElementById("transactionsTableBody");
-        tbody.innerHTML = "";
-        let transactionsToRender = filteredTransactions || data.transactions;
-        let sorted = transactionsToRender.slice().sort((a, b) => new Date(b.date) - new Date(a.date));
-        sorted.forEach(t => {
-          let accountInfo = "";
-          if (t.type === "transfer") {
-            let source = data.accounts.find(a => a.id === t.sourceAccount);
-            let dest = data.accounts.find(a => a.id === t.destinationAccount);
-            accountInfo = `${source ? source.name : "Conta não encontrada"} -> ${dest ? dest.name : "Conta não encontrada"}`;
-          } else {
-            let bank = data.accounts.find(a => a.id === t.bankId);
-            accountInfo = bank ? bank.name : "Conta não encontrada";
-          }
-          const tr = document.createElement("tr");
-          tr.innerHTML = `<td>${t.id}</td>
-                          <td>${t.date}</td>
-                          <td>${t.description}</td>
-                          <td>${formatCurrency(t.type === "expense" ? -t.amount : t.amount)}</td>
-                          <td>${t.type === "income" ? "Receita" : t.type === "expense" ? "Despesa" : "Transferência"}</td>
-                          <td>${accountInfo}</td>
-                          <td>${t.tags ? t.tags.join(", ") : ""}</td>
-                          <td>
-                            <button class="action-btn" onclick="editTransaction('${t.id}')">Editar</button>
-                            <button class="action-btn" onclick="deleteTransaction('${t.id}')">Deletar</button>
-                          </td>`;
-          tbody.appendChild(tr);
-        });
-      }
-      function saveTransaction() {
-        const idField = document.getElementById("transactionId");
-        const dateVal = document.getElementById("transactionDate").value;
-        const descVal = document.getElementById("transactionDescription").value.trim();
-        const amtVal = parseFloat(document.getElementById("transactionAmount").value);
-        const typeVal = document.getElementById("transactionType").value;
-        const tagsVal = document.getElementById("transactionTags").value.trim() ? document.getElementById("transactionTags").value.split(",").map(t => t.trim()) : [];
-        if (!dateVal || !descVal || isNaN(amtVal) || amtVal <= 0) { alert("Preencha os campos obrigatórios corretamente."); return; }
-        if (typeVal === "transfer") {
-          const sourceAccount = document.getElementById("sourceAccount").value;
-          const destinationAccount = document.getElementById("destinationAccount").value;
-          if (!sourceAccount || !destinationAccount || sourceAccount === destinationAccount) { alert("Selecione contas de origem e destino diferentes."); return; }
-          if (!idField.value) {
-            data.transactions.push({ id: generateId("trx"), date: dateVal, description: descVal, amount: amtVal, type: "transfer", sourceAccount: sourceAccount, destinationAccount: destinationAccount, tags: tagsVal });
-          } else {
-            let t = data.transactions.find(t => t.id === idField.value);
-            if (t) { t.date = dateVal; t.description = descVal; t.amount = amtVal; t.type = "transfer"; t.sourceAccount = sourceAccount; t.destinationAccount = destinationAccount; t.tags = tagsVal; }
-          }
-        } else {
-          const bankVal = document.getElementById("transactionBank").value;
-          if (!bankVal) { alert("Selecione uma conta bancária."); return; }
-          if (!idField.value) {
-            data.transactions.push({ id: generateId("trx"), date: dateVal, description: descVal, amount: amtVal, type: typeVal, bankId: bankVal, tags: tagsVal });
-          } else {
-            let t = data.transactions.find(t => t.id === idField.value);
-            if (t) { t.date = dateVal; t.description = descVal; t.amount = amtVal; t.type = typeVal; t.bankId = bankVal; t.tags = tagsVal; }
-          }
-        }
-        clearTransactionForm();
-        saveDataToFirestore();
-        alert("Transação salva com sucesso!");
-      }
-      function clearTransactionForm() {
-        document.getElementById("transactionId").value = "";
-        document.getElementById("transactionDate").value = "";
-        document.getElementById("transactionDescription").value = "";
-        document.getElementById("transactionAmount").value = "";
-        document.getElementById("transactionType").value = "income";
-        document.getElementById("transactionBank").value = "";
-        document.getElementById("transactionTags").value = "";
-        document.getElementById("transferOptions").style.display = "none";
-        document.getElementById("transactionBankGroup").style.display = "block";
-      }
-      function editTransaction(id) {
-        let t = data.transactions.find(t => t.id === id);
-        if (t) {
-          document.getElementById("transactionId").value = t.id;
-          document.getElementById("transactionDate").value = t.date;
-          document.getElementById("transactionDescription").value = t.description;
-          document.getElementById("transactionAmount").value = t.amount;
-          document.getElementById("transactionType").value = t.type;
-          if (t.type === "transfer") {
-            document.getElementById("sourceAccount").value = t.sourceAccount;
-            document.getElementById("destinationAccount").value = t.destinationAccount;
-            document.getElementById("transferOptions").style.display = "block";
-            document.getElementById("transactionBankGroup").style.display = "none";
-          } else {
-            document.getElementById("transactionBank").value = t.bankId;
-            document.getElementById("transferOptions").style.display = "none";
-            document.getElementById("transactionBankGroup").style.display = "block";
-          }
-          document.getElementById("transactionTags").value = t.tags ? t.tags.join(", ") : "";
-          showSection("transactions");
-        }
-      }
-      function deleteTransaction(id) {
-        if (!confirm("Confirma exclusão desta transação?")) return;
-        data.transactions = data.transactions.filter(t => t.id !== id);
-        saveDataToFirestore();
-      }
-      function filterTransactions() {
-        let filterType = document.getElementById("filterType").value;
-        let filteredTransactions = [];
-        if (filterType === "all") {
-          filteredTransactions = data.transactions;
-        } else if (filterType === "income" || filterType === "expense" || filterType === "transfer") {
-          filteredTransactions = data.transactions.filter(t => t.type === filterType);
-        } else if (filterType === "dateRange") {
-          let startDate = document.getElementById("startDate").value;
-          let endDate = document.getElementById("endDate").value;
-          if (!startDate || !endDate) { alert("Selecione as datas de início e fim."); return; }
-          filteredTransactions = data.transactions.filter(t => t.date >= startDate && t.date <= endDate);
-        }
-        renderTransactions(filteredTransactions);
-      }
+        <!-- RODAPÉ -->
+        <footer>
+            <p>Gerenciador Financeiro © 2025</p>
+        </footer>
 
-      /****************************
-       * CONTAS FIXAS
-       ****************************/
-      function renderRecurringBills() {
-        const tbody = document.getElementById("recurringBillsTableBody");
-        tbody.innerHTML = "";
-        data.recurringBills.forEach(rb => {
-          let bank = data.accounts.find(a => a.id === rb.bankId);
-          const tr = document.createElement("tr");
-          tr.innerHTML = `<td>${rb.id}</td>
-                          <td>${rb.description}</td>
-                          <td>${formatCurrency(rb.amount)}</td>
-                          <td>${rb.dueDay}</td>
-                          <td>${bank ? bank.name : "Não Vinculada"}</td>
-                          <td>
-                            <button class="action-btn" onclick="editRecurringBill('${rb.id}')">Editar</button>
-                            <button class="action-btn" onclick="deleteRecurringBill('${rb.id}')">Deletar</button>
-                            <button class="action-btn" onclick="payRecurringBill('${rb.id}')">Pagar</button>
-                          </td>`;
-          tbody.appendChild(tr);
-        });
-      }
-      function saveRecurringBill() {
-        const idField = document.getElementById("recurringId");
-        const descVal = document.getElementById("recurringDescription").value.trim();
-        const amtVal = parseFloat(document.getElementById("recurringAmount").value);
-        const dueVal = parseInt(document.getElementById("recurringDueDay").value);
-        const bankVal = document.getElementById("recurringBank").value;
-        if (!descVal || isNaN(amtVal) || amtVal <= 0 || isNaN(dueVal) || dueVal < 1 || dueVal > 31) { alert("Verifique os dados da conta fixa."); return; }
-        if (!idField.value) {
-          data.recurringBills.push({ id: generateId("rec"), description: descVal, amount: amtVal, dueDay: dueVal, bankId: bankVal || null });
-        } else {
-          let rb = data.recurringBills.find(r => r.id === idField.value);
-          if (rb) { rb.description = descVal; rb.amount = amtVal; rb.dueDay = dueVal; rb.bankId = bankVal || null; }
-        }
-        idField.value = ""; document.getElementById("recurringDescription").value = ""; document.getElementById("recurringAmount").value = "";
-        document.getElementById("recurringDueDay").value = ""; document.getElementById("recurringBank").value = "";
-        saveDataToFirestore();
-        alert("Conta fixa salva com sucesso!");
-      }
-      function editRecurringBill(id) {
-        let rb = data.recurringBills.find(r => r.id === id);
-        if (rb) {
-          document.getElementById("recurringId").value = rb.id;
-          document.getElementById("recurringDescription").value = rb.description;
-          document.getElementById("recurringAmount").value = rb.amount;
-          document.getElementById("recurringDueDay").value = rb.dueDay;
-          document.getElementById("recurringBank").value = rb.bankId || "";
-          showSection("recurringBills");
-        }
-      }
-      function deleteRecurringBill(id) {
-        if (!confirm("Confirma exclusão desta conta fixa?")) return;
-        data.recurringBills = data.recurringBills.filter(r => r.id !== id);
-        saveDataToFirestore();
-      }
-      function payRecurringBill(id) {
-        let rb = data.recurringBills.find(r => r.id === id);
-        if (!rb) { alert("Conta fixa não encontrada."); return; }
-        if (!rb.bankId) { alert("Associe uma conta para efetuar o pagamento."); return; }
-        if (!confirm(`Confirmar pagamento de ${formatCurrency(rb.amount)} para "${rb.description}"?`)) return;
-        data.transactions.push({ id: generateId("trx"), date: new Date().toISOString().split("T")[0], description: "Pagamento de: " + rb.description, amount: rb.amount, type: "expense", bankId: rb.bankId, tags: ["recorrente"] });
-        saveDataToFirestore();
-        alert("Conta fixa paga com sucesso!");
-      }
+        <!-- CHATINHO (BOT FLUTUANTE) -->
+        <div id="chatbot">
+            <img src="https://img.icons8.com/emoji/48/000000/robot-emoji.png" alt="Chatinho">
+        </div>
+        <div id="chatWindow">
+            <div id="chatMessages">
+                <p><strong>Chatinho:</strong> Oi! Eu sou o Chatinho, seu ajudante financeiro. Pergunte algo ou me diga o que registrar!</p>
+            </div>
+            <input type="text" id="chatInput" placeholder="Digite aqui...">
+            <button onclick="sendMessage()">Enviar</button>
+        </div>
 
-      /****************************
-       * ORÇAMENTOS
-       ****************************/
-      function renderBudgets() {
-        const container = document.getElementById("budgetList");
-        container.innerHTML = "";
-        if (data.budgets.length === 0) { container.innerHTML = "<p>Nenhum orçamento definido.</p>"; return; }
-        data.budgets.forEach(b => {
-          let spent = calculateSpentInCategory(b.category);
-          let div = document.createElement("div");
-          div.className = "summary-box";
-          div.innerHTML = `<h3>Categoria: ${b.category}</h3>
-                           <p>Limite: ${formatCurrency(b.limit)}</p>
-                           <p>Gasto (mês): ${formatCurrency(spent)}</p>
-                           <div class="progress-bar"><span class="progress-bar-fill" style="width:${Math.min((spent / b.limit) * 100, 100)}%; background-color:${spent > b.limit ? "#ff4c4c" : "#00ff7f"}"></span></div>
-                           <div>
-                             <button class="action-btn" onclick="editBudget('${b.id}')">Editar</button>
-                             <button class="action-btn" onclick="deleteBudget('${b.id}')">Deletar</button>
-                           </div>`;
-          container.appendChild(div);
-        });
-      }
-      function saveBudget() {
-        const idField = document.getElementById("budgetId");
-        const catVal = document.getElementById("budgetCategory").value.trim();
-        const limitVal = parseFloat(document.getElementById("budgetLimit").value);
-        if (!catVal || isNaN(limitVal) || limitVal <= 0) { alert("Verifique os dados do orçamento."); return; }
-        if (!idField.value) {
-          data.budgets.push({ id: generateId("bdg"), category: catVal, limit: limitVal });
-        } else {
-          let b = data.budgets.find(b => b.id === idField.value);
-          if (b) { b.category = catVal; b.limit = limitVal; }
-        }
-        idField.value = ""; document.getElementById("budgetCategory").value = ""; document.getElementById("budgetLimit").value = "";
-        saveDataToFirestore();
-        alert("Orçamento salvo com sucesso!");
-      }
-      function editBudget(id) {
-        let b = data.budgets.find(b => b.id === id);
-        if (b) {
-          document.getElementById("budgetId").value = b.id;
-          document.getElementById("budgetCategory").value = b.category;
-          document.getElementById("budgetLimit").value = b.limit;
-          showSection("budgets");
-        }
-      }
-      function deleteBudget(id) {
-        if (!confirm("Confirma exclusão deste orçamento?")) return;
-        data.budgets = data.budgets.filter(b => b.id !== id);
-        saveDataToFirestore();
-      }
-      function calculateSpentInCategory(category) {
-        let total = 0;
-        let now = new Date();
-        let start = new Date(now.getFullYear(), now.getMonth(), settings.closingDay);
-        let end = new Date(now.getFullYear(), now.getMonth() + 1, settings.closingDay - 1);
-        data.transactions.forEach(t => {
-          let d = new Date(t.date);
-          if (t.type === "expense" && d >= start && d <= end) {
-            if (t.tags && t.tags.includes(category)) total += t.amount;
-          }
-        });
-        return total;
-      }
-
-      /****************************
-       * METAS
-       ****************************/
-      function renderGoals() {
-    const container = document.getElementById("goalsList");
-    container.innerHTML = "";
-    if (data.goals.length === 0) { 
-        container.innerHTML = "<p>Nenhuma meta definida.</p>"; 
-        return; 
-    }
-    data.goals.forEach(g => {
-        if (typeof g.currentValue === "undefined") g.currentValue = 0;
-        let div = document.createElement("div");
-        div.className = "summary-box";
-        div.innerHTML = `<h3>Meta: ${g.name}</h3>
-                         <p>Valor Alvo: ${formatCurrency(g.targetValue)}</p>
-                         <p>Atual: ${formatCurrency(g.currentValue)}</p>
-                         <p>Prazo: ${g.deadline ? g.deadline : "Não definido"}</p>
-                         <div class="progress-bar"><span class="progress-bar-fill" style="width:${Math.min((g.currentValue / g.targetValue) * 100, 100)}%"></span></div>
-                         <div>
-                           <button class="action-btn" onclick="editGoal('${g.id}')">Editar</button>
-                           <button class="action-btn" onclick="deleteGoal('${g.id}')">Deletar</button>
-                           <button class="action-btn" onclick="addValueToGoal('${g.id}')">Adicionar valor</button>
-                         </div>`;
-        container.appendChild(div);
-    });
-}
-      function saveGoal() {
-        const idField = document.getElementById("goalId");
-        const nameVal = document.getElementById("goalName").value.trim();
-        const targetVal = parseFloat(document.getElementById("goalTarget").value);
-        const deadlineVal = document.getElementById("goalDeadline").value;
-        if (!nameVal || isNaN(targetVal) || targetVal <= 0) { alert("Verifique os dados da meta."); return; }
-        if (!idField.value) {
-          data.goals.push({ id: generateId("gol"), name: nameVal, targetValue: targetVal, currentValue: 0, deadline: deadlineVal || null });
-        } else {
-          let g = data.goals.find(g => g.id === idField.value);
-          if (g) { g.name = nameVal; g.targetValue = targetVal; g.deadline = deadlineVal || null; }
-        }
-        idField.value = ""; document.getElementById("goalName").value = ""; document.getElementById("goalTarget").value = ""; document.getElementById("goalDeadline").value = "";
-        saveDataToFirestore();
-        alert("Meta salva com sucesso!");
-      }
-      function editGoal(id) {
-        let g = data.goals.find(g => g.id === id);
-        if (g) {
-          document.getElementById("goalId").value = g.id;
-          document.getElementById("goalName").value = g.name;
-          document.getElementById("goalTarget").value = g.targetValue;
-          if (g.deadline) document.getElementById("goalDeadline").value = g.deadline;
-          showSection("goals");
-        }
-      }
-      function deleteGoal(id) {
-        if (!confirm("Confirma exclusão desta meta?")) return;
-        data.goals = data.goals.filter(g => g.id !== id);
-        saveDataToFirestore();
-      }
-      function addValueToGoal(id) {
-        let g = data.goals.find(g => g.id === id);
-        if (g) {
-          let val = parseFloat(prompt("Quanto deseja adicionar à meta?"));
-          if (!isNaN(val) && val > 0) { g.currentValue += val; saveDataToFirestore(); alert("Valor adicionado."); }
-        }
-      }
-
-      /****************************
-       * DASHBOARD, INSIGHTS & LEMBRETES
-       ****************************/
-      function updateDashboard() {
-        updateAccountBalances();
-        let now = new Date();
-        let mStr = formatMonthYear(now);
-        let start = new Date(now.getFullYear(), now.getMonth(), settings.closingDay);
-        let end = new Date(now.getFullYear(), now.getMonth() + 1, settings.closingDay - 1);
-        let totalAccounts = data.accounts.reduce((sum, a) => sum + (a.currentBalance || 0), 0);
-        document.getElementById("totalEmContas").textContent = "Total em Contas: " + formatCurrency(totalAccounts);
-
-        let fixedTotal = 0, paidFixed = 0;
-        data.recurringBills.forEach(bill => {
-          fixedTotal += bill.amount;
-          if (data.transactions.some(t => t.type === "expense" && t.tags && t.tags.includes("recorrente") && t.description === "Pagamento de: " + bill.description && new Date(t.date) >= start && new Date(t.date) <= end)) {
-            paidFixed += bill.amount;
-          }
-        });
-        document.getElementById("fixedBills").textContent = `Contas Fixas (${mStr}): ${formatCurrency(fixedTotal)} (Pagas: ${formatCurrency(paidFixed)})`;
-
-        let income = 0, expense = 0;
-        data.transactions.forEach(t => {
-          let d = new Date(t.date);
-          if (d >= start && d <= end && t.type !== "transfer") {
-            if (t.type === "income") income += t.amount;
-            if (t.type === "expense") expense += t.amount;
-          }
-        });
-        document.getElementById("receitasMes").textContent = `Receitas (${mStr}): ${formatCurrency(income)}`;
-        document.getElementById("gastosMes").textContent = `Gastos (${mStr}): ${formatCurrency(expense)}`;
-      }
-
-      async function askGemini(question) {
-        const apiKey = 'AIzaSyDHoCnJamvhgRDNdCUfQCsazCY5AFBftG0'; // Substitua pela sua chave de API do Google Cloud
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`;
-        const requestBody = {
-          contents: [{
-            parts: [{
-              text: question
-            }]
-          }]
-        };
-        try {
-          const response = await fetch(url, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(requestBody)
-          });
-          if (!response.ok) {
-            throw new Error(`Erro HTTP! status: ${response.status}`);
-          }
-          const data = await response.json();
-          return data.candidates[0].content.parts[0].text;
-        } catch (error) {
-          console.error("Erro ao chamar Gemini:", error);
-          return "Desculpe, não consegui processar isso agora.";
-        }
-      }
-
-      async function updateInsightsAndReminders() {
-        updateDashboard();
-        const totalAccounts = data.accounts.reduce((sum, a) => sum + (a.currentBalance || 0), 0);
-        const questionInsights = `O usuário tem um saldo total de ${totalAccounts}. Ele está com saldo positivo ou negativo? Responda em uma frase curta.`;
-        const insight = await askGemini(questionInsights);
-        document.getElementById("insightsText").textContent = insight;
-
-        const now = new Date();
-        const today = now.getDate();
-        const reminders = data.recurringBills.filter(rb => rb.dueDay >= today && (rb.dueDay - today) <= 5);
-        const reminderText = reminders.map(rb => `${rb.description} - vence em ${rb.dueDay - today} dia(s)`).join('\n');
-        const questionReminders = `Aqui estão os lembretes de vencimento:\n${reminderText}\nFormate isso de forma amigável em poucas palavras.`;
-        const formattedReminders = await askGemini(questionReminders);
-        const remList = document.getElementById("remindersList");
-        remList.innerHTML = formattedReminders.replace(/\n/g, '<br>');
-      }
-
-      /****************************
-       * RELATÓRIOS MENSAIS
-       ****************************/
-      function generateMonthlyReport() {
-        const reportMonth = document.getElementById("reportMonth").value;
-        const reportContent = document.getElementById("reportContent");
-        if (!reportMonth) { alert("Selecione um mês."); return; }
-        let [year, month] = reportMonth.split("-");
-        year = parseInt(year); month = parseInt(month) - 1;
-        let start = new Date(year, month, settings.closingDay);
-        let end = new Date(year, month + 1, settings.closingDay - 1);
-        let trans = data.transactions.filter(t => {
-          let d = new Date(t.date);
-          return d >= start && d <= end && t.type !== "transfer";
-        });
-        let income = 0, expense = 0;
-        trans.forEach(t => {
-          if (t.type === "income") income += t.amount;
-          if (t.type === "expense") expense += t.amount;
-        });
-        let html = `<h3>Relatório de ${month + 1}/${year}</h3>`;
-        html += `<p>Receitas: ${formatCurrency(income)}</p>`;
-        html += `<p>Gastos: ${formatCurrency(expense)}</p>`;
-        html += `<p>Saldo: ${formatCurrency(income - expense)}</p>`;
-        let tagMap = {};
-        trans.forEach(t => {
-          if (t.tags && t.tags.length > 0) {
-            t.tags.forEach(tag => {
-              if (!tagMap[tag]) tagMap[tag] = { income: 0, expense: 0 };
-              if (t.type === "income") tagMap[tag].income += t.amount;
-              else tagMap[tag].expense += t.amount;
-            });
-          }
-        });
-        if (Object.keys(tagMap).length > 0) {
-          html += "<h4>Resumo por Tags:</h4><ul>";
-          for (let tag in tagMap) {
-            html += `<li><strong>${tag}:</strong> Receitas = ${formatCurrency(tagMap[tag].income)}, Gastos = ${formatCurrency(tagMap[tag].expense)}</li>`;
-          }
-          html += "</ul>";
-        }
-        reportContent.innerHTML = html;
-      }
-
-      /****************************
-       * DECLARAÇÃO ANUAL DO MEI
-       ****************************/
-      function updateDeclarationBankOptions() {
-        const sel = document.getElementById("declarationBank");
-        if (!sel) return;
-        sel.innerHTML = "";
-        let allOpt = document.createElement("option");
-        allOpt.value = "all"; allOpt.textContent = "Todos";
-        sel.appendChild(allOpt);
-        data.accounts.forEach(acc => {
-          let opt = document.createElement("option");
-          opt.value = acc.id; opt.textContent = acc.name;
-          sel.appendChild(opt);
-        });
-      }
-      function generateAnnualDeclaration() {
-        let year = parseInt(document.getElementById("declarationYear").value);
-        if (isNaN(year)) { alert("Informe um ano válido."); return; }
-        let bankFilter = document.getElementById("declarationBank").value;
-        let html = `<h3>Declaração Anual - ${year}</h3>`;
-        if (bankFilter !== "all") {
-          let bank = data.accounts.find(a => a.id === bankFilter);
-          html += `<h4>Filtrado por: ${bank ? bank.name : "Conta não encontrada"}</h4>`;
-        }
-        html += `<table><thead><tr><th>Mês</th><th>Receitas</th><th>Gastos</th><th>Saldo</th></tr></thead><tbody>`;
-        let totalIncome = 0, totalExpense = 0;
-        const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
-        for (let m = 0; m < 12; m++) {
-          let mIncome = 0, mExpense = 0;
-          let start = new Date(year, m, settings.closingDay);
-          let end = new Date(year, m + 1, settings.closingDay - 1);
-          data.transactions.forEach(t => {
-            let d = new Date(t.date);
-            if (d >= start && d <= end && t.type !== "transfer") {
-              if (bankFilter !== "all" && t.bankId !== bankFilter) return;
-              if (t.type === "income") mIncome += t.amount;
-              if (t.type === "expense") mExpense += t.amount;
-            }
-          });
-          totalIncome += mIncome; totalExpense += mExpense;
-          html += `<tr><td>${monthNames[m]}</td><td>${formatCurrency(mIncome)}</td><td>${formatCurrency(mExpense)}</td><td>${formatCurrency(mIncome - mExpense)}</td></tr>`;
-        }
-        html += `</tbody></table>`;
-        html += `<p><strong>Total Anual:</strong> Receitas: ${formatCurrency(totalIncome)}, Gastos: ${formatCurrency(totalExpense)}, Saldo: ${formatCurrency(totalIncome - totalExpense)}</p>`;
-        document.getElementById("annualReportContent").innerHTML = html;
-      }
-
-      /****************************
-       * ESTATÍSTICAS (GRÁFICOS)
-       ****************************/
-      function drawCharts() {
-        drawPieChart();
-        drawBarChart();
-      }
-      function drawPieChart() {
-        const canvas = document.getElementById("pieChart");
-        if (!canvas) return;
-        const ctx = canvas.getContext("2d");
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        let now = new Date();
-        let start = new Date(now.getFullYear(), now.getMonth(), settings.closingDay);
-        let end = new Date(now.getFullYear(), now.getMonth() + 1, settings.closingDay - 1);
-        let income = 0, expense = 0;
-        data.transactions.forEach(t => {
-          let d = new Date(t.date);
-          if (d >= start && d <= end && t.type !== "transfer") {
-            if (t.type === "income") income += t.amount;
-            if (t.type === "expense") expense += t.amount;
-          }
-        });
-        let total = income + expense;
-        let incomeAngle = (income / total) * 2 * Math.PI;
-        let expenseAngle = (expense / total) * 2 * Math.PI;
-        ctx.fillStyle = "#00cc66";
-        ctx.beginPath();
-        ctx.moveTo(canvas.width / 2, canvas.height / 2);
-        ctx.arc(canvas.width / 2, canvas.height / 2, Math.min(canvas.width, canvas.height) / 2 - 10, 0, incomeAngle);
-        ctx.closePath();
-        ctx.fill();
-        ctx.fillStyle = "#cc0000";
-        ctx.beginPath();
-        ctx.moveTo(canvas.width / 2, canvas.height / 2);
-        ctx.arc(canvas.width / 2, canvas.height / 2, Math.min(canvas.width, canvas.height) / 2 - 10, incomeAngle, incomeAngle + expenseAngle);
-        ctx.closePath();
-        ctx.fill();
-        ctx.fillStyle = "#000";
-        ctx.font = "16px Arial";
-        ctx.fillText("Receitas: " + formatCurrency(income), 10, 20);
-        ctx.fillText("Gastos: " + formatCurrency(expense), 10, 40);
-      }
-      function drawBarChart() {
-        const canvas = document.getElementById("barChart");
-        if (!canvas) return;
-        const ctx = canvas.getContext("2d");
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        let year = new Date().getFullYear();
-        let monthNames = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
-        let incomes = [], expenses = [];
-        for (let m = 0; m < 12; m++) {
-          let mIncome = 0, mExpense = 0;
-          let start = new Date(year, m, settings.closingDay);
-          let end = new Date(year, m + 1, settings.closingDay - 1);
-          data.transactions.forEach(t => {
-            let d = new Date(t.date);
-            if (d >= start && d <= end && t.type !== "transfer") {
-              if (t.type === "income") mIncome += t.amount;
-              if (t.type === "expense") mExpense += t.amount;
-            }
-          });
-          incomes.push(mIncome);
-          expenses.push(mExpense);
-        }
-        let maxVal = Math.max(...incomes, ...expenses);
-        let barWidth = canvas.width / 24;
-        for (let i = 0; i < 12; i++) {
-          let x = i * 2 * barWidth + barWidth;
-          let barHeightIncome = (incomes[i] / maxVal) * (canvas.height - 50);
-          let barHeightExpense = (expenses[i] / maxVal) * (canvas.height - 50);
-          ctx.fillStyle = "#00cc66";
-          ctx.fillRect(x, canvas.height - barHeightIncome, barWidth, barHeightIncome);
-          ctx.fillStyle = "#cc0000";
-          ctx.fillRect(x + barWidth, canvas.height - barHeightExpense, barWidth, barHeightExpense);
-          ctx.fillStyle = "#fff";
-          ctx.font = "12px Arial";
-          ctx.fillText(monthNames[i], x, canvas.height - 5);
-        }
-      }
-
-      /****************************
-       * BUSCA AVANÇADA
-       ****************************/
-      function advancedSearch() {
-        let start = document.getElementById("searchStartDate").value;
-        let end = document.getElementById("searchEndDate").value;
-        let text = document.getElementById("searchText").value.trim().toLowerCase();
-        let results = data.transactions.filter(t => {
-          let d = new Date(t.date);
-          let cond = true;
-          if (start) cond = cond && (d >= new Date(start));
-          if (end) cond = cond && (d <= new Date(end));
-          if (text) {
-            cond = cond && ((t.description.toLowerCase().includes(text)) || (t.tags && t.tags.join(" ").toLowerCase().includes(text)));
-          }
-          return cond;
-        });
-        let tbody = document.getElementById("searchResults");
-        tbody.innerHTML = "";
-        results.forEach(t => {
-          let accountInfo = "";
-          if (t.type === "transfer") {
-            let source = data.accounts.find(a => a.id === t.sourceAccount);
-            let dest = data.accounts.find(a => a.id === t.destinationAccount);
-            accountInfo = `${source ? source.name : "Conta não encontrada"} -> ${dest ? dest.name : "Conta não encontrada"}`;
-          } else {
-            let bank = data.accounts.find(a => a.id === t.bankId);
-            accountInfo = bank ? bank.name : "Conta não encontrada";
-          }
-          let tr = document.createElement("tr");
-          tr.innerHTML = `<td>${t.id}</td>
-                          <td>${t.date}</td>
-                          <td>${t.description}</td>
-                          <td>${formatCurrency(t.type === "expense" ? -t.amount : t.amount)}</td>
-                          <td>${t.type === "income" ? "Receita" : t.type === "expense" ? "Despesa" : "Transferência"}</td>
-                          <td>${accountInfo}</td>
-                          <td>${t.tags ? t.tags.join(", ") : ""}</td>`;
-          tbody.appendChild(tr);
-        });
-      }
-
-      /****************************
-       * CONFIGURAÇÕES
-       ****************************/
-      function toggleTheme() {
-        if (settings.theme === "dark") {
-          settings.theme = "light";
-          document.body.classList.add("light-mode");
-        } else {
-          settings.theme = "dark";
-          document.body.classList.remove("light-mode");
-        }
-        saveDataToFirestore();
-      }
-      function applySettings() {
-        let curr = document.getElementById("currencySymbol").value.trim();
-        if (curr) { settings.currencySymbol = curr; }
-        let closingDay = parseInt(document.getElementById("closingDay").value);
-        if (!isNaN(closingDay) && closingDay >= 1 && closingDay <= 31) { settings.closingDay = closingDay; }
-        saveDataToFirestore();
-        alert("Configurações aplicadas!");
-      }
-      function exportCSV() {
-        let csv = "ID,Data,Descrição,Valor,Tipo,Conta Origem,Conta Destino,Tags\n";
-        data.transactions.forEach(t => {
-          let accountInfo = "";
-          if (t.type === "transfer") {
-            let source = data.accounts.find(a => a.id === t.sourceAccount);
-            let dest = data.accounts.find(a => a.id === t.destinationAccount);
-            accountInfo = `${source ? source.name : ""},${dest ? dest.name : ""}`;
-          } else {
-            let bank = data.accounts.find(a => a.id === t.bankId);
-            accountInfo = `${bank ? bank.name : ""},`;
-          }
-          csv += `${t.id},${t.date},"${t.description}",${t.amount},${t.type},${accountInfo},"${t.tags ? t.tags.join(" ") : ""}"\n`;
-        });
-        let blob = new Blob([csv], { type: "text/csv" });
-        let url = window.URL.createObjectURL(blob);
-        let a = document.createElement("a");
-        a.href = url; a.download = "transacoes.csv";
-        a.click();
-        window.URL.revokeObjectURL(url);
-      }
-      function importCSV() {
-        let fileInput = document.getElementById("csvFile");
-        if (fileInput.files.length === 0) { alert("Selecione um arquivo CSV."); return; }
-        let file = fileInput.files[0];
-        let reader = new FileReader();
-        reader.onload = function (e) {
-          let text = e.target.result;
-          let lines = text.split("\n");
-          for (let i = 1; i < lines.length; i++) {
-            let line = lines[i].trim();
-            if (!line) continue;
-            let cols = line.split(",");
-            let t = {
-              id: cols[0],
-              date: cols[1],
-              description: cols[2].replace(/"/g, ""),
-              amount: parseFloat(cols[3]),
-              type: cols[4],
-              tags: cols[7] ? cols[7].split(" ") : []
+        <script>
+            // Configuração do Firebase
+            const firebaseConfig = {
+                apiKey: "AIzaSyBVCtmkrtBtVl3A4xcYxckHFFa_eHxiQ0w",
+                authDomain: "AIzaSyBVCtmkrtBtVl3A4xcYxckHFFa_eHxiQ0w.firebaseapp.com",
+                projectId: "gerenciador-financeiro-6d8c2",
+                storageBucket: "gerenciador-financeiro-6d8c2.appspot.com",
+                messagingSenderId: "693980228824",
+                appId: "1:693980228824:web:d183b4b3f61978f2c83bad"
             };
-            if (t.type === "transfer") {
-              t.sourceAccount = cols[5];
-              t.destinationAccount = cols[6];
-            } else {
-              t.bankId = cols[5];
+            firebase.initializeApp(firebaseConfig);
+            const db = firebase.firestore();
+
+            // Função de login
+            function login() {
+                var email = document.getElementById('email').value;
+                var password = document.getElementById('password').value;
+                firebase.auth().signInWithEmailAndPassword(email, password)
+                    .then((userCredential) => {
+                        document.getElementById('loginForm').style.display = 'none';
+                        document.getElementById('app').style.display = 'block';
+                    })
+                    .catch((error) => {
+                        alert('Erro: ' + error.message);
+                    });
             }
-            data.transactions.push(t);
-          }
-          saveDataToFirestore();
-          alert("CSV importado (revise as contas vinculadas manualmente).");
-        };
-        reader.readAsText(file);
-      }
 
-      /****************************
-       * BACKUP & RESTAURAÇÃO
-       ****************************/
-      function generateBackup() {
-        document.getElementById("backupData").value = JSON.stringify(data);
-      }
-      function copyBackup() {
-        let txt = document.getElementById("backupData");
-        txt.select(); txt.setSelectionRange(0, 99999);
-        document.execCommand("copy");
-        alert("Backup copiado!");
-      }
-      function restoreBackup() {
-        let txt = document.getElementById("restoreData").value;
-        if (!txt) { alert("Cole o backup para restaurar."); return; }
-        try {
-          let obj = JSON.parse(txt);
-          if (obj.accounts && obj.transactions && obj.recurringBills && obj.budgets && obj.goals) {
-            data = obj;
-            saveDataToFirestore();
-            document.getElementById("restoreData").value = "";
-            alert("Backup restaurado!");
-          } else { alert("Backup inválido."); }
-        } catch (e) { alert("Erro ao restaurar backup."); console.error(e); }
-      }
+            function logout() {
+                firebase.auth().signOut().then(() => {
+                    document.getElementById('app').style.display = 'none';
+                    document.getElementById('loginForm').style.display = 'block';
+                }).catch((error) => {
+                    alert("Erro ao fazer logout: " + error.message);
+                });
+            }
 
-      /****************************
-       * LIMPAR DADOS
-       ****************************/
-      async function clearData() {
-        if (confirm("Tem certeza que deseja limpar TODOS os dados? Isso apagará tudo do Firestore.")) {
-          const userId = getUserId();
-          if (userId) {
-            data = { accounts: [], transactions: [], recurringBills: [], budgets: [], goals: [] };
-            await saveDataToFirestore();
-            localStorage.clear();
-            alert("Dados limpos! Recarregando...");
-            location.reload();
-          }
-        }
-      }
+            firebase.auth().onAuthStateChanged((user) => {
+                if (user) {
+                    document.getElementById('loginForm').style.display = 'none';
+                    document.getElementById('app').style.display = 'block';
+                    loadDataFromFirestore();
+                } else {
+                    document.getElementById('loginForm').style.display = 'block';
+                    document.getElementById('app').style.display = 'none';
+                }
+            });
 
-      /****************************
-       * CHATINHO (BOT INTELIGENTE)
-       ****************************/
-      document.getElementById("chatbot").addEventListener("click", function() {
-        const chatWindow = document.getElementById("chatWindow");
-        chatWindow.style.display = chatWindow.style.display === "none" ? "block" : "none";
-      });
+            /****************************
+             * ESTRUTURA DE DADOS
+             ****************************/
+            let data = {
+                accounts: [],
+                transactions: [],
+                recurringBills: [],
+                budgets: [],
+                goals: []
+            };
+            let settings = {
+                currencySymbol: "R$",
+                theme: "dark",
+                closingDay: 1
+            };
 
-      async function sendMessage() {
-        const input = document.getElementById("chatInput");
-        const question = input.value.trim();
-        if (!question) return;
-        input.value = "";
-        const messages = document.getElementById("chatMessages");
-        messages.innerHTML += `<p><strong>Você:</strong> ${question}</p>`;
-        
-        if (question.toLowerCase().includes("adicionar transação")) {
-          const answer = await processTransactionInput(question);
-          messages.innerHTML += `<p><strong>Chatinho:</strong> ${answer}</p>`;
-        } else {
-          const dataStr = JSON.stringify(data);
-          const fullQuestion = `Com base nestes dados financeiros:\n${dataStr}\nResponda à pergunta: ${question}`;
-          const answer = await askGemini(fullQuestion);
-          messages.innerHTML += `<p><strong>Chatinho:</strong> ${answer}</p>`;
-        }
-        messages.scrollTop = messages.scrollHeight;
-      }
+            function getUserId() {
+                const user = firebase.auth().currentUser;
+                return user ? user.uid : null;
+            }
 
-      async function processTransactionInput(input) {
-        const regex = /adicionar transação[:\s]*(\d+(?:[,.]\d+)?)\s*(reais)?\s*,\s*([^,]+),\s*(receita|despesa|transferência),\s*(?:dia\s*)?(\d{1,2}\/\d{1,2}\/\d{4}),\s*([^]+)/i;
-        const match = input.match(regex);
-        if (!match) return "Por favor, use o formato: 'Adicionar transação: 500 reais, aluguel, despesa, dia 10/10/2023, banco X'";
-        
-        let [, amountStr, , description, type, dateStr, bankName] = match;
-        const amount = parseFloat(amountStr.replace(",", "."));
-        const [day, month, year] = dateStr.split("/");
-        const date = `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
-        const bank = data.accounts.find(a => a.name.toLowerCase().includes(bankName.trim().toLowerCase()));
-        
-        if (!bank) return "Conta bancária não encontrada. Cadastre-a primeiro!";
-        if (isNaN(amount) || amount <= 0) return "Valor inválido.";
-        
-        if (type.toLowerCase() === "transferência") {
-          return "Transferências precisam de conta de origem e destino. Use o formulário manual por enquanto!";
-        } else {
-          data.transactions.push({
-            id: generateId("trx"),
-            date: date,
-            description: description.trim(),
-            amount: amount,
-            type: type.toLowerCase() === "receita" ? "income" : "expense",
-            bankId: bank.id,
-            tags: []
-          });
-          await saveDataToFirestore();
-          return `Transação "${description}" de ${formatCurrency(amount)} (${type}) registrada com sucesso em ${bank.name}!`;
-        }
-      }
+            async function loadDataFromFirestore() {
+                const userId = getUserId();
+                if (!userId) return;
+                try {
+                    const doc = await db.collection('users').doc(userId).get();
+                    if (doc.exists) {
+                        data = doc.data();
+                    } else {
+                        data = { accounts: [], transactions: [], recurringBills: [], budgets: [], goals: [] };
+                        await db.collection('users').doc(userId).set(data);
+                    }
+                    const storedSettings = localStorage.getItem("financialManagerSettings");
+                    if (storedSettings) settings = JSON.parse(storedSettings);
+                    init();
+                } catch (error) {
+                    alert("Erro ao carregar dados do Firestore.");
+                }
+            }
 
-      /****************************
-       * INICIALIZAÇÃO
-       ****************************/
-      function init() {
-        updateAllSections();
-        document.getElementById("transactionType").addEventListener("change", function() {
-          if (this.value === "transfer") {
-            document.getElementById("transferOptions").style.display = "block";
-            document.getElementById("transactionBankGroup").style.display = "none";
-          } else {
-            document.getElementById("transferOptions").style.display = "none";
-            document.getElementById("transactionBankGroup").style.display = "block";
-          }
-        });
-        document.getElementById("filterType").addEventListener("change", function() {
-          if (this.value === "dateRange") {
-            document.getElementById("dateRangeGroup").style.display = "block";
-          } else {
-            document.getElementById("dateRangeGroup").style.display = "none";
-          }
-        });
-      }
-    </script>
-  </div>
+            async function saveDataToFirestore() {
+                const userId = getUserId();
+                if (!userId) return;
+                try {
+                    await db.collection('users').doc(userId).set(data);
+                    localStorage.setItem("financialManagerSettings", JSON.stringify(settings));
+                    updateAllSections();
+                } catch (error) {
+                    alert("Erro ao salvar dados no Firestore.");
+                }
+            }
+
+            /****************************
+             * UTILITÁRIOS
+             ****************************/
+            function generateId(prefix = "id") { return prefix + "_" + Math.random().toString(36).substring(2, 9); }
+            function formatCurrency(value) {
+                if (isNaN(value)) value = 0;
+                return settings.currencySymbol + " " + value.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            }
+            function formatMonthYear(date) {
+                const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+                return monthNames[date.getMonth()] + "/" + date.getFullYear();
+            }
+            function showSection(id) {
+                document.querySelectorAll("section").forEach(sec => sec.classList.remove("active"));
+                document.getElementById(id).classList.add("active");
+                if (id === "statistics") drawCharts();
+            }
+
+            /****************************
+             * SINCRONIZAÇÃO DE CONTAS
+             ****************************/
+            function updateAccountBalances() {
+                data.accounts.forEach(account => {
+                    let balance = account.initialBalance || 0;
+                    data.transactions.forEach(t => {
+                        if (t.type === "income" && t.bankId === account.id) {
+                            balance += t.amount;
+                        } else if (t.type === "expense" && t.bankId === account.id) {
+                            balance -= t.amount;
+                        } else if (t.type === "transfer") {
+                            if (t.sourceAccount === account.id) {
+                                balance -= t.amount;
+                            } else if (t.destinationAccount === account.id) {
+                                balance += t.amount;
+                            }
+                        }
+                    });
+                    account.currentBalance = balance;
+                });
+            }
+
+            function updateAllSections() {
+                updateAccountBalances();
+                renderAccounts();
+                renderTransactions();
+                renderRecurringBills();
+                renderBudgets();
+                renderGoals();
+                updateDashboard();
+                updateDeclarationBankOptions();
+            }
+
+            /****************************
+             * CONTAS BANCÁRIAS
+             ****************************/
+            function renderAccounts() {
+                const tbody = document.getElementById("accountsTableBody");
+                tbody.innerHTML = "";
+                data.accounts.forEach(account => {
+                    const tr = document.createElement("tr");
+                    tr.innerHTML = `<td>${account.id}</td>
+                                    <td>${account.name}</td>
+                                    <td>${formatCurrency(account.currentBalance)}</td>
+                                    <td>
+                                        <button class="action-btn" onclick="editAccount('${account.id}')">Editar</button>
+                                        <button class="action-btn" onclick="deleteAccount('${account.id}')">Deletar</button>
+                                    </td>`;
+                    tbody.appendChild(tr);
+                });
+                const selTrans = document.getElementById("transactionBank");
+                const selSource = document.getElementById("sourceAccount");
+                const selDest = document.getElementById("destinationAccount");
+                if (selTrans) {
+                    selTrans.innerHTML = "";
+                    data.accounts.forEach(acc => {
+                        let opt = document.createElement("option");
+                        opt.value = acc.id; opt.textContent = acc.name;
+                        selTrans.appendChild(opt);
+                    });
+                }
+                if (selSource) {
+                    selSource.innerHTML = "";
+                    data.accounts.forEach(acc => {
+                        let opt = document.createElement("option");
+                        opt.value = acc.id; opt.textContent = acc.name;
+                        selSource.appendChild(opt);
+                    });
+                }
+                if (selDest) {
+                    selDest.innerHTML = "";
+                    data.accounts.forEach(acc => {
+                        let opt = document.createElement("option");
+                        opt.value = acc.id; opt.textContent = acc.name;
+                        selDest.appendChild(opt);
+                    });
+                }
+                const selRec = document.getElementById("recurringBank");
+                if (selRec) {
+                    selRec.innerHTML = "";
+                    let emptyOpt = document.createElement("option");
+                    emptyOpt.value = ""; emptyOpt.textContent = "Nenhuma (pagamento manual)";
+                    selRec.appendChild(emptyOpt);
+                    data.accounts.forEach(acc => {
+                        let opt = document.createElement("option");
+                        opt.value = acc.id; opt.textContent = acc.name;
+                        selRec.appendChild(opt);
+                    });
+                }
+            }
+            function saveAccount() {
+                const idField = document.getElementById("accountId");
+                const bankName = document.getElementById("bankName").value.trim();
+                const initialBal = parseFloat(document.getElementById("initialBalance").value);
+                if (!bankName) { alert("Informe o nome do banco."); return; }
+                if (isNaN(initialBal)) { alert("Informe um saldo válido."); return; }
+                if (!idField.value) {
+                    data.accounts.push({ id: generateId("acc"), name: bankName, initialBalance: initialBal, currentBalance: initialBal });
+                } else {
+                    let acc = data.accounts.find(a => a.id === idField.value);
+                    if (acc) { acc.name = bankName; acc.initialBalance = initialBal; }
+                }
+                idField.value = ""; document.getElementById("bankName").value = ""; document.getElementById("initialBalance").value = "";
+                saveDataToFirestore();
+                alert("Conta salva com sucesso!");
+            }
+            function editAccount(id) {
+                let acc = data.accounts.find(a => a.id === id);
+                if (acc) {
+                    document.getElementById("accountId").value = acc.id;
+                    document.getElementById("bankName").value = acc.name;
+                    document.getElementById("initialBalance").value = acc.initialBalance;
+                    showSection("accounts");
+                }
+            }
+            function deleteAccount(id) {
+                if (!confirm("Confirma exclusão desta conta?")) return;
+                if (data.transactions.some(t => t.bankId === id || (t.type === "transfer" && (t.sourceAccount === id || t.destinationAccount === id))) || data.recurringBills.some(rb => rb.bankId === id)) {
+                    alert("Não é possível excluir: há transações ou contas fixas vinculadas.");
+                    return;
+                }
+                data.accounts = data.accounts.filter(a => a.id !== id);
+                saveDataToFirestore();
+            }
+
+            /****************************
+             * TRANSAÇÕES
+             ****************************/
+            function renderTransactions(filteredTransactions = null) {
+                const tbody = document.getElementById("transactionsTableBody");
+                tbody.innerHTML = "";
+                let transactionsToRender = filteredTransactions || data.transactions;
+                let sorted = transactionsToRender.slice().sort((a, b) => new Date(b.date) - new Date(a.date));
+                sorted.forEach(t => {
+                    let accountInfo = "";
+                    if (t.type === "transfer") {
+                        let source = data.accounts.find(a => a.id === t.sourceAccount);
+                        let dest = data.accounts.find(a => a.id === t.destinationAccount);
+                        accountInfo = `${source ? source.name : "Conta não encontrada"} -> ${dest ? dest.name : "Conta não encontrada"}`;
+                    } else {
+                        let bank = data.accounts.find(a => a.id === t.bankId);
+                        accountInfo = bank ? bank.name : "Conta não encontrada";
+                    }
+                    const tr = document.createElement("tr");
+                    tr.innerHTML = `<td>${t.id}</td>
+                                    <td>${t.date}</td>
+                                    <td>${t.description}</td>
+                                    <td>${formatCurrency(t.type === "expense" ? -t.amount : t.amount)}</td>
+                                    <td>${t.type === "income" ? "Receita" : t.type === "expense" ? "Despesa" : "Transferência"}</td>
+                                    <td>${accountInfo}</td>
+                                    <td>${t.tags ? t.tags.join(", ") : ""}</td>
+                                    <td>
+                                        <button class="action-btn" onclick="editTransaction('${t.id}')">Editar</button>
+                                        <button class="action-btn" onclick="deleteTransaction('${t.id}')">Deletar</button>
+                                    </td>`;
+                    tbody.appendChild(tr);
+                });
+            }
+            function saveTransaction() {
+                const idField = document.getElementById("transactionId");
+                const dateVal = document.getElementById("transactionDate").value;
+                const descVal = document.getElementById("transactionDescription").value.trim();
+                const amtVal = parseFloat(document.getElementById("transactionAmount").value);
+                const typeVal = document.getElementById("transactionType").value;
+                const tagsVal = document.getElementById("transactionTags").value.trim() ? document.getElementById("transactionTags").value.split(",").map(t => t.trim()) : [];
+                if (!dateVal || !descVal || isNaN(amtVal) || amtVal <= 0) { alert("Preencha os campos obrigatórios corretamente."); return; }
+                if (typeVal === "transfer") {
+                    const sourceAccount = document.getElementById("sourceAccount").value;
+                    const destinationAccount = document.getElementById("destinationAccount").value;
+                    if (!sourceAccount || !destinationAccount || sourceAccount === destinationAccount) { alert("Selecione contas de origem e destino diferentes."); return; }
+                    if (!idField.value) {
+                        data.transactions.push({ id: generateId("trx"), date: dateVal, description: descVal, amount: amtVal, type: "transfer", sourceAccount: sourceAccount, destinationAccount: destinationAccount, tags: tagsVal });
+                    } else {
+                        let t = data.transactions.find(t => t.id === idField.value);
+                        if (t) { t.date = dateVal; t.description = descVal; t.amount = amtVal; t.type = "transfer"; t.sourceAccount = sourceAccount; t.destinationAccount = destinationAccount; t.tags = tagsVal; }
+                    }
+                } else {
+                    const bankVal = document.getElementById("transactionBank").value;
+                    if (!bankVal) { alert("Selecione uma conta bancária."); return; }
+                    if (!idField.value) {
+                        data.transactions.push({ id: generateId("trx"), date: dateVal, description: descVal, amount: amtVal, type: typeVal, bankId: bankVal, tags: tagsVal });
+                    } else {
+                        let t = data.transactions.find(t => t.id === idField.value);
+                        if (t) { t.date = dateVal; t.description = descVal; t.amount = amtVal; t.type = typeVal; t.bankId = bankVal; t.tags = tagsVal; }
+                    }
+                }
+                clearTransactionForm();
+                saveDataToFirestore();
+                alert("Transação salva com sucesso!");
+            }
+            function clearTransactionForm() {
+                document.getElementById("transactionId").value = "";
+                document.getElementById("transactionDate").value = "";
+                document.getElementById("transactionDescription").value = "";
+                document.getElementById("transactionAmount").value = "";
+                document.getElementById("transactionType").value = "income";
+                document.getElementById("transactionBank").value = "";
+                document.getElementById("transactionTags").value = "";
+                document.getElementById("transferOptions").style.display = "none";
+                document.getElementById("transactionBankGroup").style.display = "block";
+            }
+            function editTransaction(id) {
+                let t = data.transactions.find(t => t.id === id);
+                if (t) {
+                    document.getElementById("transactionId").value = t.id;
+                    document.getElementById("transactionDate").value = t.date;
+                    document.getElementById("transactionDescription").value = t.description;
+                    document.getElementById("transactionAmount").value = t.amount;
+                    document.getElementById("transactionType").value = t.type;
+                    if (t.type === "transfer") {
+                        document.getElementById("sourceAccount").value = t.sourceAccount;
+                        document.getElementById("destinationAccount").value = t.destinationAccount;
+                        document.getElementById("transferOptions").style.display = "block";
+                        document.getElementById("transactionBankGroup").style.display = "none";
+                    } else {
+                        document.getElementById("transactionBank").value = t.bankId;
+                        document.getElementById("transferOptions").style.display = "none";
+                        document.getElementById("transactionBankGroup").style.display = "block";
+                    }
+                    document.getElementById("transactionTags").value = t.tags ? t.tags.join(", ") : "";
+                    showSection("transactions");
+                }
+            }
+            function deleteTransaction(id) {
+                if (!confirm("Confirma exclusão desta transação?")) return;
+                data.transactions = data.transactions.filter(t => t.id !== id);
+                saveDataToFirestore();
+            }
+            function filterTransactions() {
+                let filterType = document.getElementById("filterType").value;
+                let filteredTransactions = [];
+                if (filterType === "all") {
+                    filteredTransactions = data.transactions;
+                } else if (filterType === "income" || filterType === "expense" || filterType === "transfer") {
+                    filteredTransactions = data.transactions.filter(t => t.type === filterType);
+                } else if (filterType === "dateRange") {
+                    let startDate = document.getElementById("startDate").value;
+                    let endDate = document.getElementById("endDate").value;
+                    if (!startDate || !endDate) { alert("Selecione as datas de início e fim."); return; }
+                    filteredTransactions = data.transactions.filter(t => t.date >= startDate && t.date <= endDate);
+                }
+                renderTransactions(filteredTransactions);
+            }
+
+            /****************************
+             * CONTAS FIXAS
+             ****************************/
+            function renderRecurringBills() {
+                const tbody = document.getElementById("recurringBillsTableBody");
+                tbody.innerHTML = "";
+                data.recurringBills.forEach(rb => {
+                    let bank = data.accounts.find(a => a.id === rb.bankId);
+                    const tr = document.createElement("tr");
+                    tr.innerHTML = `<td>${rb.id}</td>
+                                    <td>${rb.description}</td>
+                                    <td>${formatCurrency(rb.amount)}</td>
+                                    <td>${rb.dueDay}</td>
+                                    <td>${bank ? bank.name : "Não Vinculada"}</td>
+                                    <td>
+                                        <button class="action-btn" onclick="editRecurringBill('${rb.id}')">Editar</button>
+                                        <button class="action-btn" onclick="deleteRecurringBill('${rb.id}')">Deletar</button>
+                                        <button class="action-btn" onclick="payRecurringBill('${rb.id}')">Pagar</button>
+                                    </td>`;
+                    tbody.appendChild(tr);
+                });
+            }
+            function saveRecurringBill() {
+                const idField = document.getElementById("recurringId");
+                const descVal = document.getElementById("recurringDescription").value.trim();
+                const amtVal = parseFloat(document.getElementById("recurringAmount").value);
+                const dueVal = parseInt(document.getElementById("recurringDueDay").value);
+                const bankVal = document.getElementById("recurringBank").value;
+                if (!descVal || isNaN(amtVal) || amtVal <= 0 || isNaN(dueVal) || dueVal < 1 || dueVal > 31) { alert("Verifique os dados da conta fixa."); return; }
+                if (!idField.value) {
+                    data.recurringBills.push({ id: generateId("rec"), description: descVal, amount: amtVal, dueDay: dueVal, bankId: bankVal || null });
+                } else {
+                    let rb = data.recurringBills.find(r => r.id === idField.value);
+                    if (rb) { rb.description = descVal; rb.amount = amtVal; rb.dueDay = dueVal; rb.bankId = bankVal || null; }
+                }
+                idField.value = ""; document.getElementById("recurringDescription").value = ""; document.getElementById("recurringAmount").value = "";
+                document.getElementById("recurringDueDay").value = ""; document.getElementById("recurringBank").value = "";
+                saveDataToFirestore();
+                alert("Conta fixa salva com sucesso!");
+            }
+            function editRecurringBill(id) {
+                let rb = data.recurringBills.find(r => r.id === id);
+                if (rb) {
+                    document.getElementById("recurringId").value = rb.id;
+                    document.getElementById("recurringDescription").value = rb.description;
+                    document.getElementById("recurringAmount").value = rb.amount;
+                    document.getElementById("recurringDueDay").value = rb.dueDay;
+                    document.getElementById("recurringBank").value = rb.bankId || "";
+                    showSection("recurringBills");
+                }
+            }
+            function deleteRecurringBill(id) {
+                if (!confirm("Confirma exclusão desta conta fixa?")) return;
+                data.recurringBills = data.recurringBills.filter(r => r.id !== id);
+                saveDataToFirestore();
+            }
+            function payRecurringBill(id) {
+                let rb = data.recurringBills.find(r => r.id === id);
+                if (!rb) { alert("Conta fixa não encontrada."); return; }
+                if (!rb.bankId) { alert("Associe uma conta para efetuar o pagamento."); return; }
+                if (!confirm(`Confirmar pagamento de ${formatCurrency(rb.amount)} para "${rb.description}"?`)) return;
+                data.transactions.push({ id: generateId("trx"), date: new Date().toISOString().split("T")[0], description: "Pagamento de: " + rb.description, amount: rb.amount, type: "expense", bankId: rb.bankId, tags: ["recorrente"] });
+                saveDataToFirestore();
+                alert("Conta fixa paga com sucesso!");
+            }
+
+            /****************************
+             * ORÇAMENTOS
+             ****************************/
+            function renderBudgets() {
+                const container = document.getElementById("budgetList");
+                container.innerHTML = "";
+                if (data.budgets.length === 0) { container.innerHTML = "<p>Nenhum orçamento definido.</p>"; return; }
+                data.budgets.forEach(b => {
+                    let spent = calculateSpentInCategory(b.category);
+                    let div = document.createElement("div");
+                    div.className = "summary-box";
+                    div.innerHTML = `<h3>Categoria: ${b.category}</h3>
+                                     <p>Limite: ${formatCurrency(b.limit)}</p>
+                                     <p>Gasto (mês): ${formatCurrency(spent)}</p>
+                                     <div class="progress-bar"><span class="progress-bar-fill" style="width:${Math.min((spent / b.limit) * 100, 100)}%; background-color:${spent > b.limit ? "#ff4c4c" : "#00ff7f"}"></span></div>
+                                     <div>
+                                         <button class="action-btn" onclick="editBudget('${b.id}')">Editar</button>
+                                         <button class="action-btn" onclick="deleteBudget('${b.id}')">Deletar</button>
+                                     </div>`;
+                    container.appendChild(div);
+                });
+            }
+            function saveBudget() {
+                const idField = document.getElementById("budgetId");
+                const catVal = document.getElementById("budgetCategory").value.trim();
+                const limitVal = parseFloat(document.getElementById("budgetLimit").value);
+                if (!catVal || isNaN(limitVal) || limitVal <= 0) { alert("Verifique os dados do orçamento."); return; }
+                if (!idField.value) {
+                    data.budgets.push({ id: generateId("bdg"), category: catVal, limit: limitVal });
+                } else {
+                    let b = data.budgets.find(b => b.id === idField.value);
+                    if (b) { b.category = catVal; b.limit = limitVal; }
+                }
+                idField.value = ""; document.getElementById("budgetCategory").value = ""; document.getElementById("budgetLimit").value = "";
+                saveDataToFirestore();
+                alert("Orçamento salvo com sucesso!");
+            }
+            function editBudget(id) {
+                let b = data.budgets.find(b => b.id === id);
+                if (b) {
+                    document.getElementById("budgetId").value = b.id;
+                    document.getElementById("budgetCategory").value = b.category;
+                    document.getElementById("budgetLimit").value = b.limit;
+                    showSection("budgets");
+                }
+            }
+            function deleteBudget(id) {
+                if (!confirm("Confirma exclusão deste orçamento?")) return;
+                data.budgets = data.budgets.filter(b => b.id !== id);
+                saveDataToFirestore();
+            }
+            function calculateSpentInCategory(category) {
+                let total = 0;
+                let now = new Date();
+                let start = new Date(now.getFullYear(), now.getMonth(), settings.closingDay);
+                let end = new Date(now.getFullYear(), now.getMonth() + 1, settings.closingDay - 1);
+                data.transactions.forEach(t => {
+                    let d = new Date(t.date);
+                    if (t.type === "expense" && d >= start && d <= end) {
+                        if (t.tags && t.tags.includes(category)) total += t.amount;
+                    }
+                });
+                return total;
+            }
+
+            /****************************
+             * METAS
+             ****************************/
+            function renderGoals() {
+                const container = document.getElementById("goalsList");
+                container.innerHTML = "";
+                if (data.goals.length === 0) { container.innerHTML = "<p>Nenhuma meta definida.</p>"; return; }
+                data.goals.forEach(g => {
+                    if (typeof g.currentValue === "undefined") g.currentValue = 0;
+                    let div = document.createElement("div");
+                    div.className = "summary-box";
+                    div.innerHTML = `<h3>Meta: ${g.name}</h3>
+                                     <p>Valor Alvo: ${formatCurrency(g.targetValue)}</p>
+                                     <p>Atual: ${formatCurrency(g.currentValue)}</p>
+                                     <p>Prazo: ${g.deadline ? g.deadline : "Não definido"}</p>
+                                     <div class="progress-bar"><span class="progress-bar-fill" style="width:${Math.min((g.currentValue / g.targetValue) * 100, 100)}%"></span></div>
+                                     <div>
+                                         <button class="action-btn" onclick="editGoal('${g.id}')">Editar</button>
+                                         <button class="action-btn" onclick="deleteGoal('${g.id}')">Deletar</button>
+                                         <button class="action-btn" onclick="addValueToGoal('${g.id}')">Adicionar valor</button>
+                                     </div>`;
+                    container.appendChild(div);
+                });
+            }
+            function saveGoal() {
+                const idField = document.getElementById("goalId");
+                const nameVal = document.getElementById("goalName").value.trim();
+                const targetVal = parseFloat(document.getElementById("goalTarget").value);
+                const deadlineVal = document.getElementById("goalDeadline").value;
+                if (!nameVal || isNaN(targetVal) || targetVal <= 0) { alert("Verifique os dados da meta."); return; }
+                if (!idField.value) {
+                    data.goals.push({ id: generateId("gol"), name: nameVal, targetValue: targetVal, currentValue: 0, deadline: deadlineVal || null });
+                } else {
+                    let g = data.goals.find(g => g.id === idField.value);
+                    if (g) { g.name = nameVal; g.targetValue = targetVal; g.deadline = deadlineVal || null; }
+                }
+                idField.value = ""; document.getElementById("goalName").value = ""; document.getElementById("goalTarget").value = ""; document.getElementById("goalDeadline").value = "";
+                saveDataToFirestore();
+                alert("Meta salva com sucesso!");
+            }
+            function editGoal(id) {
+                let g = data.goals.find(g => g.id === id);
+                if (g) {
+                    document.getElementById("goalId").value = g.id;
+                    document.getElementById("goalName").value = g.name;
+                    document.getElementById("goalTarget").value = g.targetValue;
+                    if (g.deadline) document.getElementById("goalDeadline").value = g.deadline;
+                    showSection("goals");
+                }
+            }
+            function deleteGoal(id) {
+                if (!confirm("Confirma exclusão desta meta?")) return;
+                data.goals = data.goals.filter(g => g.id !== id);
+                saveDataToFirestore();
+            }
+            function addValueToGoal(id) {
+                let g = data.goals.find(g => g.id === id);
+                if (g) {
+                    let val = parseFloat(prompt("Quanto deseja adicionar à meta?"));
+                    if (!isNaN(val) && val > 0) { g.currentValue += val; saveDataToFirestore(); alert("Valor adicionado."); }
+                }
+            }
+
+            /****************************
+             * DASHBOARD, INSIGHTS & LEMBRETES
+             ****************************/
+            function updateDashboard() {
+                updateAccountBalances();
+                let now = new Date();
+                let mStr = formatMonthYear(now);
+                let start = new Date(now.getFullYear(), now.getMonth(), settings.closingDay);
+                let end = new Date(now.getFullYear(), now.getMonth() + 1, settings.closingDay - 1);
+                let totalAccounts = data.accounts.reduce((sum, a) => sum + (a.currentBalance || 0), 0);
+                document.getElementById("totalEmContas").textContent = "Total em Contas: " + formatCurrency(totalAccounts);
+
+                let fixedTotal = 0, paidFixed = 0;
+                data.recurringBills.forEach(bill => {
+                    fixedTotal += bill.amount;
+                    if (data.transactions.some(t => t.type === "expense" && t.tags && t.tags.includes("recorrente") && t.description === "Pagamento de: " + bill.description && new Date(t.date) >= start && new Date(t.date) <= end)) {
+                        paidFixed += bill.amount;
+                    }
+                });
+                document.getElementById("fixedBills").textContent = `Contas Fixas (${mStr}): ${formatCurrency(fixedTotal)} (Pagas: ${formatCurrency(paidFixed)})`;
+
+                let income = 0, expense = 0;
+                data.transactions.forEach(t => {
+                    let d = new Date(t.date);
+                    if (d >= start && d <= end && t.type !== "transfer") {
+                        if (t.type === "income") income += t.amount;
+                        if (t.type === "expense") expense += t.amount;
+                    }
+                });
+                document.getElementById("receitasMes").textContent = `Receitas (${mStr}): ${formatCurrency(income)}`;
+                document.getElementById("gastosMes").textContent = `Gastos (${mStr}): ${formatCurrency(expense)}`;
+            }
+
+            async function askGemini(question) {
+                const apiKey = 'AIzaSyDy_F3UaLhqie3x5gukZ0Xqiw2tSY0s8W0'; // SUBSTITUA ISSO PELA CHAVE QUE VOCÊ VAI GERAR NO GOOGLE CLOUD
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+                const requestBody = {
+                    contents: [{
+                        parts: [{
+                            text: question
+                        }]
+                    }]
+                };
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(requestBody)
+                    });
+                    if (!response.ok) {
+                        throw new Error(`Erro HTTP! status: ${response.status}`);
+                    }
+                    const data = await response.json();
+                    return data.candidates[0].content.parts[0].text;
+                } catch (error) {
+                    console.error("Erro ao chamar Gemini:", error);
+                    return "Desculpe, não consegui processar isso agora.";
+                }
+            }
+
+            async function updateInsightsAndReminders() {
+                updateDashboard();
+                const totalAccounts = data.accounts.reduce((sum, a) => sum + (a.currentBalance || 0), 0);
+                const questionInsights = `O usuário tem um saldo total de ${totalAccounts}. Ele está com saldo positivo ou negativo? Responda em uma frase curta.`;
+                const insight = await askGemini(questionInsights);
+                document.getElementById("insightsText").textContent = insight;
+
+                const now = new Date();
+                const today = now.getDate();
+                const reminders = data.recurringBills.filter(rb => rb.dueDay >= today && (rb.dueDay - today) <= 5);
+                const reminderText = reminders.map(rb => `${rb.description} - vence em ${rb.dueDay - today} dia(s)`).join('\n');
+                const questionReminders = `Aqui estão os lembretes de vencimento:\n${reminderText}\nFormate isso de forma amigável em poucas palavras.`;
+                const formattedReminders = await askGemini(questionReminders);
+                const remList = document.getElementById("remindersList");
+                remList.innerHTML = formattedReminders.replace(/\n/g, '<br>');
+            }
+
+            /****************************
+             * RELATÓRIOS MENSAIS
+             ****************************/
+            function generateMonthlyReport() {
+                const reportMonth = document.getElementById("reportMonth").value;
+                const reportContent = document.getElementById("reportContent");
+                if (!reportMonth) { alert("Selecione um mês."); return; }
+                let [year, month] = reportMonth.split("-");
+                year = parseInt(year); month = parseInt(month) - 1;
+                let start = new Date(year, month, settings.closingDay);
+                let end = new Date(year, month + 1, settings.closingDay - 1);
+                let trans = data.transactions.filter(t => {
+                    let d = new Date(t.date);
+                    return d >= start && d <= end && t.type !== "transfer";
+                });
+                let income = 0, expense = 0;
+                trans.forEach(t => {
+                    if (t.type === "income") income += t.amount;
+                    if (t.type === "expense") expense += t.amount;
+                });
+                let html = `<h3>Relatório de ${month + 1}/${year}</h3>`;
+                html += `<p>Receitas: ${formatCurrency(income)}</p>`;
+                html += `<p>Gastos: ${formatCurrency(expense)}</p>`;
+                html += `<p>Saldo: ${formatCurrency(income - expense)}</p>`;
+                let tagMap = {};
+                trans.forEach(t => {
+                    if (t.tags && t.tags.length > 0) {
+                        t.tags.forEach(tag => {
+                            if (!tagMap[tag]) tagMap[tag] = { income: 0, expense: 0 };
+                            if (t.type === "income") tagMap[tag].income += t.amount;
+                            else tagMap[tag].expense += t.amount;
+                        });
+                    }
+                });
+                if (Object.keys(tagMap).length > 0) {
+                    html += "<h4>Resumo por Tags:</h4><ul>";
+                    for (let tag in tagMap) {
+                        html += `<li><strong>${tag}:</strong> Receitas = ${formatCurrency(tagMap[tag].income)}, Gastos = ${formatCurrency(tagMap[tag].expense)}</li>`;
+                    }
+                    html += "</ul>";
+                }
+                reportContent.innerHTML = html;
+            }
+
+            /****************************
+             * DECLARAÇÃO ANUAL DO MEI
+             ****************************/
+            function updateDeclarationBankOptions() {
+                const sel = document.getElementById("declarationBank");
+                if (!sel) return;
+                sel.innerHTML = "";
+                let allOpt = document.createElement("option");
+                allOpt.value = "all"; allOpt.textContent = "Todos";
+                sel.appendChild(allOpt);
+                data.accounts.forEach(acc => {
+                    let opt = document.createElement("option");
+                    opt.value = acc.id; opt.textContent = acc.name;
+                    sel.appendChild(opt);
+                });
+            }
+            function generateAnnualDeclaration() {
+                let year = parseInt(document.getElementById("declarationYear").value);
+                if (isNaN(year)) { alert("Informe um ano válido."); return; }
+                let bankFilter = document.getElementById("declarationBank").value;
+                let html = `<h3>Declaração Anual - ${year}</h3>`;
+                if (bankFilter !== "all") {
+                    let bank = data.accounts.find(a => a.id === bankFilter);
+                    html += `<h4>Filtrado por: ${bank ? bank.name : "Conta não encontrada"}</h4>`;
+                }
+                html += `<table><thead><tr><th>Mês</th><th>Receitas</th><th>Gastos</th><th>Saldo</th></tr></thead><tbody>`;
+                let totalIncome = 0, totalExpense = 0;
+                const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+                for (let m = 0; m < 12; m++) {
+                    let mIncome = 0, mExpense = 0;
+                    let start = new Date(year, m, settings.closingDay);
+                    let end = new Date(year, m + 1, settings.closingDay - 1);
+                    data.transactions.forEach(t => {
+                        let d = new Date(t.date);
+                        if (d >= start && d <= end && t.type !== "transfer") {
+                            if (bankFilter !== "all" && t.bankId !== bankFilter) return;
+                            if (t.type === "income") mIncome += t.amount;
+                            if (t.type === "expense") mExpense += t.amount;
+                        }
+                    });
+                    totalIncome += mIncome; totalExpense += mExpense;
+                    html += `<tr><td>${monthNames[m]}</td><td>${formatCurrency(mIncome)}</td><td>${formatCurrency(mExpense)}</td><td>${formatCurrency(mIncome - mExpense)}</td></tr>`;
+                }
+                html += `</tbody></table>`;
+                html += `<p><strong>Total Anual:</strong> Receitas: ${formatCurrency(totalIncome)}, Gastos: ${formatCurrency(totalExpense)}, Saldo: ${formatCurrency(totalIncome - totalExpense)}</p>`;
+                document.getElementById("annualReportContent").innerHTML = html;
+            }
+
+            /****************************
+             * ESTATÍSTICAS (GRÁFICOS)
+             ****************************/
+            function drawCharts() {
+                drawPieChart();
+                drawBarChart();
+            }
+            function drawPieChart() {
+                const canvas = document.getElementById("pieChart");
+                if (!canvas) return;
+                const ctx = canvas.getContext("2d");
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                let now = new Date();
+                let start = new Date(now.getFullYear(), now.getMonth(), settings.closingDay);
+                let end = new Date(now.getFullYear(), now.getMonth() + 1, settings.closingDay - 1);
+                let income = 0, expense = 0;
+                data.transactions.forEach(t => {
+                    let d = new Date(t.date);
+                    if (d >= start && d <= end && t.type !== "transfer") {
+                        if (t.type === "income") income += t.amount;
+                        if (t.type === "expense") expense += t.amount;
+                    }
+                });
+                let total = income + expense;
+                let incomeAngle = (income / total) * 2 * Math.PI;
+                let expenseAngle = (expense / total) * 2 * Math.PI;
+                ctx.fillStyle = "#00cc66";
+                ctx.beginPath();
+                ctx.moveTo(canvas.width / 2, canvas.height / 2);
+                ctx.arc(canvas.width / 2, canvas.height / 2, Math.min(canvas.width, canvas.height) / 2 - 10, 0, incomeAngle);
+                ctx.closePath();
+                ctx.fill();
+                ctx.fillStyle = "#cc0000";
+                ctx.beginPath();
+                ctx.moveTo(canvas.width / 2, canvas.height / 2);
+                ctx.arc(canvas.width / 2, canvas.height / 2, Math.min(canvas.width, canvas.height) / 2 - 10, incomeAngle, incomeAngle + expenseAngle);
+                ctx.closePath();
+                ctx.fill();
+                ctx.fillStyle = "#000";
+                ctx.font = "16px Arial";
+                ctx.fillText("Receitas: " + formatCurrency(income), 10, 20);
+                ctx.fillText("Gastos: " + formatCurrency(expense), 10, 40);
+            }
+            function drawBarChart() {
+                const canvas = document.getElementById("barChart");
+                if (!canvas) return;
+                const ctx = canvas.getContext("2d");
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                let year = new Date().getFullYear();
+                let monthNames = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+                let incomes = [], expenses = [];
+                for (let m = 0; m < 12; m++) {
+                    let mIncome = 0, mExpense = 0;
+                    let start = new Date(year, m, settings.closingDay);
+                    let end = new Date(year, m + 1, settings.closingDay - 1);
+                    data.transactions.forEach(t => {
+                        let d = new Date(t.date);
+                        if (d >= start && d <= end && t.type !== "transfer") {
+                            if (t.type === "income") mIncome += t.amount;
+                            if (t.type === "expense") mExpense += t.amount;
+                        }
+                    });
+                    incomes.push(mIncome);
+                    expenses.push(mExpense);
+                }
+                let maxVal = Math.max(...incomes, ...expenses);
+                let barWidth = canvas.width / 24;
+                for (let i = 0; i < 12; i++) {
+                    let x = i * 2 * barWidth + barWidth;
+                    let barHeightIncome = (incomes[i] / maxVal) * (canvas.height - 50);
+                    let barHeightExpense = (expenses[i] / maxVal) * (canvas.height - 50);
+                    ctx.fillStyle = "#00cc66";
+                    ctx.fillRect(x, canvas.height - barHeightIncome, barWidth, barHeightIncome);
+                    ctx.fillStyle = "#cc0000";
+                    ctx.fillRect(x + barWidth, canvas.height - barHeightExpense, barWidth, barHeightExpense);
+                    ctx.fillStyle = "#fff";
+                    ctx.font = "12px Arial";
+                    ctx.fillText(monthNames[i], x, canvas.height - 5);
+                }
+            }
+
+            /****************************
+             * BUSCA AVANÇADA
+             ****************************/
+            function advancedSearch() {
+                let start = document.getElementById("searchStartDate").value;
+                let end = document.getElementById("searchEndDate").value;
+                let text = document.getElementById("searchText").value.trim().toLowerCase();
+                let results = data.transactions.filter(t => {
+                    let d = new Date(t.date);
+                    let cond = true;
+                    if (start) cond = cond && (d >= new Date(start));
+                    if (end) cond = cond && (d <= new Date(end));
+                    if (text) {
+                        cond = cond && ((t.description.toLowerCase().includes(text)) || (t.tags && t.tags.join(" ").toLowerCase().includes(text)));
+                    }
+                    return cond;
+                });
+                let tbody = document.getElementById("searchResults");
+                tbody.innerHTML = "";
+                results.forEach(t => {
+                    let accountInfo = "";
+                    if (t.type === "transfer") {
+                        let source = data.accounts.find(a => a.id === t.sourceAccount);
+                        let dest = data.accounts.find(a => a.id === t.destinationAccount);
+                        accountInfo = `${source ? source.name : "Conta não encontrada"} -> ${dest ? dest.name : "Conta não encontrada"}`;
+                    } else {
+                        let bank = data.accounts.find(a => a.id === t.bankId);
+                        accountInfo = bank ? bank.name : "Conta não encontrada";
+                    }
+                    let tr = document.createElement("tr");
+                    tr.innerHTML = `<td>${t.id}</td>
+                                    <td>${t.date}</td>
+                                    <td>${t.description}</td>
+                                    <td>${formatCurrency(t.type === "expense" ? -t.amount : t.amount)}</td>
+                                    <td>${t.type === "income" ? "Receita" : t.type === "expense" ? "Despesa" : "Transferência"}</td>
+                                    <td>${accountInfo}</td>
+                                    <td>${t.tags ? t.tags.join(", ") : ""}</td>`;
+                    tbody.appendChild(tr);
+                });
+            }
+
+            /****************************
+             * CONFIGURAÇÕES
+             ****************************/
+            function toggleTheme() {
+                if (settings.theme === "dark") {
+                    settings.theme = "light";
+                    document.body.classList.add("light-mode");
+                } else {
+                    settings.theme = "dark";
+                    document.body.classList.remove("light-mode");
+                }
+                saveDataToFirestore();
+            }
+            function applySettings() {
+                let curr = document.getElementById("currencySymbol").value.trim();
+                if (curr) { settings.currencySymbol = curr; }
+                let closingDay = parseInt(document.getElementById("closingDay").value);
+                if (!isNaN(closingDay) && closingDay >= 1 && closingDay <= 31) { settings.closingDay = closingDay; }
+                saveDataToFirestore();
+                alert("Configurações aplicadas!");
+            }
+            function exportCSV() {
+                let csv = "ID,Data,Descrição,Valor,Tipo,Conta Origem,Conta Destino,Tags\n";
+                data.transactions.forEach(t => {
+                    let accountInfo = "";
+                    if (t.type === "transfer") {
+                        let source = data.accounts.find(a => a.id === t.sourceAccount);
+                        let dest = data.accounts.find(a => a.id === t.destinationAccount);
+                        accountInfo = `${source ? source.name : ""},${dest ? dest.name : ""}`;
+                    } else {
+                        let bank = data.accounts.find(a => a.id === t.bankId);
+                        accountInfo = `${bank ? bank.name : ""},`;
+                    }
+                    csv += `${t.id},${t.date},"${t.description}",${t.amount},${t.type},${accountInfo},"${t.tags ? t.tags.join(" ") : ""}"\n`;
+                });
+                let blob = new Blob([csv], { type: "text/csv" });
+                let url = window.URL.createObjectURL(blob);
+                let a = document.createElement("a");
+                a.href = url; a.download = "transacoes.csv";
+                a.click();
+                window.URL.revokeObjectURL(url);
+            }
+            function importCSV() {
+                let fileInput = document.getElementById("csvFile");
+                if (fileInput.files.length === 0) { alert("Selecione um arquivo CSV."); return; }
+                let file = fileInput.files[0];
+                let reader = new FileReader();
+                reader.onload = function (e) {
+                    let text = e.target.result;
+                    let lines = text.split("\n");
+                    for (let i = 1; i < lines.length; i++) {
+                        let line = lines[i].trim();
+                        if (!line) continue;
+                        let cols = line.split(",");
+                        let t = {
+                            id: cols[0],
+                            date: cols[1],
+                            description: cols[2].replace(/"/g, ""),
+                            amount: parseFloat(cols[3]),
+                            type: cols[4],
+                            tags: cols[7] ? cols[7].split(" ") : []
+                        };
+                        if (t.type === "transfer") {
+                            t.sourceAccount = cols[5];
+                            t.destinationAccount = cols[6];
+                        } else {
+                            t.bankId = cols[5];
+                        }
+                        data.transactions.push(t);
+                    }
+                    saveDataToFirestore();
+                    alert("CSV importado (revise as contas vinculadas manualmente).");
+                };
+                reader.readAsText(file);
+            }
+
+            /****************************
+             * BACKUP & RESTAURAÇÃO
+             ****************************/
+            function generateBackup() {
+                document.getElementById("backupData").value = JSON.stringify(data);
+            }
+            function copyBackup() {
+                let txt = document.getElementById("backupData");
+                txt.select(); txt.setSelectionRange(0, 99999);
+                document.execCommand("copy");
+                alert("Backup copiado!");
+            }
+            function restoreBackup() {
+                let txt = document.getElementById("restoreData").value;
+                if (!txt) { alert("Cole o backup para restaurar."); return; }
+                try {
+                    let obj = JSON.parse(txt);
+                    if (obj.accounts && obj.transactions && obj.recurringBills && obj.budgets && obj.goals) {
+                        data = obj;
+                        saveDataToFirestore();
+                        document.getElementById("restoreData").value = "";
+                        alert("Backup restaurado!");
+                    } else { alert("Backup inválido."); }
+                } catch (e) { alert("Erro ao restaurar backup."); console.error(e); }
+            }
+
+            /****************************
+             * LIMPAR DADOS
+             ****************************/
+            async function clearData() {
+                if (confirm("Tem certeza que deseja limpar TODOS os dados? Isso apagará tudo do Firestore.")) {
+                    const userId = getUserId();
+                    if (userId) {
+                        data = { accounts: [], transactions: [], recurringBills: [], budgets: [], goals: [] };
+                        await saveDataToFirestore();
+                        localStorage.clear();
+                        alert("Dados limpos! Recarregando...");
+                        location.reload();
+                    }
+                }
+            }
+
+            /****************************
+             * CHATINHO (BOT INTELIGENTE)
+             ****************************/
+            document.getElementById("chatbot").addEventListener("click", function() {
+                const chatWindow = document.getElementById("chatWindow");
+                chatWindow.style.display = chatWindow.style.display === "none" ? "block" : "none";
+            });
+
+            async function sendMessage() {
+                const input = document.getElementById("chatInput");
+                const question = input.value.trim();
+                if (!question) return;
+                input.value = "";
+                const messages = document.getElementById("chatMessages");
+                messages.innerHTML += `<p><strong>Você:</strong> ${question}</p>`;
+
+                if (question.toLowerCase().includes("adicionar transação")) {
+                    const answer = await processTransactionInput(question);
+                    messages.innerHTML += `<p><strong>Chatinho:</strong> ${answer}</p>`;
+                } else {
+                    const dataStr = JSON.stringify(data);
+                    const fullQuestion = `Com base nestes dados financeiros:\n${dataStr}\nResponda à pergunta: ${question}`;
+                    const answer = await askGemini(fullQuestion);
+                    messages.innerHTML += `<p><strong>Chatinho:</strong> ${answer}</p>`;
+                }
+                messages.scrollTop = messages.scrollHeight;
+            }
+
+            async function processTransactionInput(input) {
+                const regex = /adicionar transação[:\s]*(\d+(?:[,.]\d+)?)\s*(reais)?\s*,\s*([^,]+),\s*(receita|despesa|transferência),\s*(?:dia\s*)?(\d{1,2}\/\d{1,2}\/\d{4}),\s*([^]+)/i;
+                const match = input.match(regex);
+                if (!match) return "Por favor, use o formato: 'Adicionar transação: 500 reais, aluguel, despesa, dia 10/10/2023, banco X'";
+                let [, amountStr, , description, type, dateStr, bankName] = match;
+                const amount = parseFloat(amountStr.replace(",", "."));
+                const [day, month, year] = dateStr.split("/");
+                const date = `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+                const bank = data.accounts.find(a => a.name.toLowerCase().includes(bankName.trim().toLowerCase()));
+                if (!bank) return "Conta bancária não encontrada. Cadastre-a primeiro!";
+                if (isNaN(amount) || amount <= 0) return "Valor inválido.";
+                if (type.toLowerCase() === "transferência") {
+                    return "Transferências precisam de conta de origem e destino. Use o formulário manual por enquanto!";
+                } else {
+                    data.transactions.push({
+                        id: generateId("trx"),
+                        date: date,
+                        description: description.trim(),
+                        amount: amount,
+                        type: type.toLowerCase() === "receita" ? "income" : "expense",
+                        bankId: bank.id,
+                        tags: []
+                    });
+                    await saveDataToFirestore();
+                    return `Transação "${description}" de ${formatCurrency(amount)} (${type}) registrada com sucesso em ${bank.name}!`;
+                }
+            }
+
+            /****************************
+             * INICIALIZAÇÃO
+             ****************************/
+            function init() {
+                updateAllSections();
+                document.getElementById("transactionType").addEventListener("change", function() {
+                    if (this.value === "transfer") {
+                        document.getElementById("transferOptions").style.display = "block";
+                        document.getElementById("transactionBankGroup").style.display = "none";
+                    } else {
+                        document.getElementById("transferOptions").style.display = "none";
+                        document.getElementById("transactionBankGroup").style.display = "block";
+                    }
+                });
+                document.getElementById("filterType").addEventListener("change", function() {
+                    if (this.value === "dateRange") {
+                        document.getElementById("dateRangeGroup").style.display = "block";
+                    } else {
+                        document.getElementById("dateRangeGroup").style.display = "none";
+                    }
+                });
+            }
+        </script>
+    </div>
 </body>
 </html>
