@@ -549,7 +549,7 @@
     <script>
       // Configuração do Firebase
       const firebaseConfig = {
-        apiKey: "AIzaSyBVCtmkrtBtVl3A4xcYxckHFFa_eHxiQ0w",
+        apiKey: "SuaChaveFirebaseAqui",
         authDomain: "gerenciador-financeiro-6d8c2.firebaseapp.com",
         projectId: "gerenciador-financeiro-6d8c2",
         storageBucket: "gerenciador-financeiro-6d8c2.appspot.com",
@@ -1042,29 +1042,30 @@
       /****************************
        * METAS
        ****************************/
-      function renderGoals()<0x04><0x02>
-
-{
-        const container = document.getElementById("goalsList");
-        container.innerHTML = "";
-        if (data.goals.length === 0) { container.innerHTML = "<p>Nenhuma meta definida.</p>"; return; }
-        data.goals.forEach(g => {
-          if (typeof g.currentValue === "undefined") g.currentValue = 0;
-          let div = document.createElement("div");
-          div.className = "summary-box";
-          div.innerHTML = `<h3>Meta: ${g.name}</h3>
-                           <p>Valor Alvo: ${formatCurrency(g.targetValue)}</p>
-                           <p>Atual: ${formatCurrency(g.currentValue)}</p>
-                           <p>Prazo: ${g.deadline ? g.deadline : "Não definido"}</p>
-                           <div class="progress-bar"><span class="progress-bar-fill" style="width:${Math.min((g.currentValue / g.targetValue) * 100, 100)}%"></span></div>
-                           <div>
-                             <button class="action-btn" onclick="editGoal('${g.id}')">Editar</button>
-                             <button class="action-btn" onclick="deleteGoal('${g.id}')">Deletar</button>
-                             <button class="action-btn" onclick="addValueToGoal('${g.id}')">Adicionar valor</button>
-                           </div>`;
-          container.appendChild(div);
-        });
-      }
+      function renderGoals() {
+    const container = document.getElementById("goalsList");
+    container.innerHTML = "";
+    if (data.goals.length === 0) { 
+        container.innerHTML = "<p>Nenhuma meta definida.</p>"; 
+        return; 
+    }
+    data.goals.forEach(g => {
+        if (typeof g.currentValue === "undefined") g.currentValue = 0;
+        let div = document.createElement("div");
+        div.className = "summary-box";
+        div.innerHTML = `<h3>Meta: ${g.name}</h3>
+                         <p>Valor Alvo: ${formatCurrency(g.targetValue)}</p>
+                         <p>Atual: ${formatCurrency(g.currentValue)}</p>
+                         <p>Prazo: ${g.deadline ? g.deadline : "Não definido"}</p>
+                         <div class="progress-bar"><span class="progress-bar-fill" style="width:${Math.min((g.currentValue / g.targetValue) * 100, 100)}%"></span></div>
+                         <div>
+                           <button class="action-btn" onclick="editGoal('${g.id}')">Editar</button>
+                           <button class="action-btn" onclick="deleteGoal('${g.id}')">Deletar</button>
+                           <button class="action-btn" onclick="addValueToGoal('${g.id}')">Adicionar valor</button>
+                         </div>`;
+        container.appendChild(div);
+    });
+}
       function saveGoal() {
         const idField = document.getElementById("goalId");
         const nameVal = document.getElementById("goalName").value.trim();
@@ -1138,7 +1139,7 @@
       }
 
       async function askGemini(question) {
-        const apiKey = 'AIzaSyDHoCnJamvhgRDNdCUfQCsazCY5AFBftG0'; // Substitua pela sua chave de API do Google Cloud
+        const apiKey = 'SUA_CHAVE_API_AQUI'; // Substitua pela sua chave de API do Google Cloud
         const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`;
         const requestBody = {
           contents: [{
