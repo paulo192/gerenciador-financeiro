@@ -57,9 +57,9 @@
         .error { color: red; }
         .summary { margin-top: 20px; }
     </style>
-    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js"></script>
+    <script type="module" src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js"></script>
+    <script type="module" src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js"></script>
+    <script type="module" src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js"></script>
 </head>
 <body>
     <div class="container" id="loginContainer">
@@ -96,8 +96,13 @@
         </div>
     </div>
 
-    <script>
-        // Substitua com sua configuração do Firebase
+    <script type="module">
+        // Importar Firebase
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js';
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
+        import { getFirestore, collection, doc, setDoc, getDocs, query, where, orderBy } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
+
+        // Configuração do Firebase
         const firebaseConfig = {
             apiKey: "AIzaSyBVCtmkrtBtVl3A4xcYxckHFFa_eHxiQ0w",
             authDomain: "gerenciador-financeiro-6d8c2.firebaseapp.com",
@@ -108,15 +113,15 @@
         };
 
         // Inicializar Firebase
-        firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
-        const db = firebase.firestore();
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
 
         // Funções de autenticação
         function login() {
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
-            auth.signInWithEmailAndPassword(email, password)
+            signInWithEmailAndPassword(auth, email, password)
                 .then(() => showDashboard())
                 .catch(error => document.getElementById('loginError').textContent = error.message);
         }
@@ -124,13 +129,13 @@
         function register() {
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
-            auth.createUserWithEmailAndPassword(email, password)
+            createUserWithEmailAndPassword(auth, email, password)
                 .then(() => showDashboard())
                 .catch(error => document.getElementById('loginError').textContent = error.message);
         }
 
         function logout() {
-            auth.signOut().then(() => {
+            signOut(auth).then(() => {
                 document.getElementById('loginContainer').classList.remove('hidden');
                 document.getElementById('dashboard').classList.add('hidden');
             });
@@ -142,7 +147,7 @@
             loadTransactions();
         }
 
-        auth.onAuthStateChanged(user => {
+        onAuthStateChanged(auth, user => {
             if (user) showDashboard();
             else {
                 document.getElementById('loginContainer').classList.remove('hidden');
@@ -226,17 +231,17 @@
         }
 
         // Salvar transações no Firestore
-        function saveTransactions(transactions) {
+        async function saveTransactions(transactions) {
             const user = auth.currentUser;
             if (!user) return;
 
             const batch = db.batch();
             transactions.forEach(tx => {
-                const ref = db.collection('transactions').doc();
+                const ref = doc(collection(db, 'transactions'));
                 batch.set(ref, { ...tx, userId: user.uid });
             });
 
-            batch.commit()
+            await batch.commit()
                 .then(() => {
                     document.getElementById('transactionInput').value = '';
                     loadTransactions();
@@ -249,40 +254,43 @@
             const user = auth.currentUser;
             if (!user) return;
 
-            db.collection('transactions')
-                .where('userId', '==', user.uid)
-                .orderBy('timestamp', 'desc')
-                .get()
-                .then(snapshot => {
-                    const tbody = document.getElementById('transactionBody');
-                    tbody.innerHTML = '';
-                    const balances = {};
-                    let totalExpenses = 0;
+            const q = query(collection(db, 'transactions'), where('userId', '==', user.uid), orderBy('timestamp', 'desc'));
+            getDocs(q).then(snapshot => {
+                const tbody = document.getElementById('transactionBody');
+                tbody.innerHTML = '';
+                const balances = {};
+                let totalExpenses = 0;
 
-                    snapshot.forEach(doc => {
-                        const tx = doc.data();
-                        const row = document.createElement('tr');
-                        row.innerHTML = `
-                            <td>${tx.type}</td>
-                            <td>${tx.amount.toFixed(2)}</td>
-                            <td>${tx.account}</td>
-                            <td>${tx.date}</td>
-                            <td>${tx.description} (${tx.category})</td>
-                        `;
-                        tbody.appendChild(row);
+                snapshot.forEach(doc => {
+                    const tx = doc.data();
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${tx.type}</td>
+                        <td>${tx.amount.toFixed(2)}</td>
+                        <td>${tx.account}</td>
+                        <td>${tx.date}</td>
+                        <td>${tx.description} (${tx.category})</td>
+                    `;
+                    tbody.appendChild(row);
 
-                        if (tx.type === 'Despesa') totalExpenses += tx.amount;
-                        if (!balances[tx.account]) balances[tx.account] = 0;
-                        balances[tx.account] += tx.type === 'Receita' ? tx.amount : -tx.amount;
-                    });
-
-                    document.getElementById('totalExpenses').textContent = `Total Gasto: R$ ${totalExpenses.toFixed(2)}`;
-                    const balancesText = Object.entries(balances)
-                        .map(([account, balance]) => `${account}: R$ ${balance.toFixed(2)}`)
-                        .join('<br>');
-                    document.getElementById('accountBalances').innerHTML = `Saldos das Contas:<br>${balancesText}`;
+                    if (tx.type === 'Despesa') totalExpenses += tx.amount;
+                    if (!balances[tx.account]) balances[tx.account] = 0;
+                    balances[tx.account] += tx.type === 'Receita' ? tx.amount : -tx.amount;
                 });
+
+                document.getElementById('totalExpenses').textContent = `Total Gasto: R$ ${totalExpenses.toFixed(2)}`;
+                const balancesText = Object.entries(balances)
+                    .map(([account, balance]) => `${account}: R$ ${balance.toFixed(2)}`)
+                    .join('<br>');
+                document.getElementById('accountBalances').innerHTML = `Saldos das Contas:<br>${balancesText}`;
+            });
         }
+
+        // Exportar funções para uso nos eventos onclick
+        window.login = login;
+        window.register = register;
+        window.logout = logout;
+        window.processTransactions = processTransactions;
     </script>
 </body>
 </html>
